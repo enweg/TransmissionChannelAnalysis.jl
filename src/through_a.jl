@@ -47,25 +47,25 @@ end
 
 
 
-function Base.map(f::Function, be::BayesianEstimated)
+function Base.map(f::Function, be::BayesianEstimated; meta=nothing)
     nd = ndims(be)
-    return Base.mapslices(f, be.value; dims=collect(1:(nd-2)))
+    return BayesianEstimated(Base.mapslices(f, be.value; dims=collect(1:(nd-2))), meta)
 end
 
-function Base.map(f::Function, bes::B...) where {B<:BayesianEstimated}
+function Base.map(f::Function, bes::B...; meta=nothing) where {B<:BayesianEstimated}
     nd = ndims(bes[1])
     nchains = size(bes[1], nd)
     ndraws = size(bes[1], nd-1)
     colons_be = fill(:, nd-2)
-    ret = f(bes...)
+    ret = f([be.value[colons_be..., 1, 1] for be in bes]...)
     returns = Array{eltype(ret)}(undef, size(ret)..., ndraws, nchains)
     colons_return = fill(:, ndims(returns)-2)
-    for chain in nchains
-        for draw in ndraws
-            returns[colons_return..., draw, chain] = f([be[colons_be, draw, chain] for be in bes]...)
+    for chain in 1:nchains
+        for draw in 1:ndraws
+            returns[colons_return..., draw, chain] = f([be.value[colons_be..., draw, chain] for be in bes]...)
         end
     end
-    return returns
+    return BayesianEstimated(returns, meta)
 end
 
 

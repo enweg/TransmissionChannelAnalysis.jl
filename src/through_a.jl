@@ -25,7 +25,7 @@ function _Q_through_a(
     return meffect
 end
 function through_a(from::Int, to::Int, through::Int, sirfs::Array{T, 3}) where {T<:Real}
-    horizon = size(sirfs.irfs.value, 3)
+    horizon = size(sirfs, 3)
     meffect = zeros(horizon)
     for h in 0:horizon-1
         combs = combinations(0:h)
@@ -36,10 +36,10 @@ function through_a(from::Int, to::Int, through::Int, sirfs::Array{T, 3}) where {
     end
     return meffect
 end
-function through_a(from::Int, to::Int, through::Int, sirfs::StructuralImpulseResponseFunction{E}) where {E<:FixedEstimated}
+function through_a(from::Int, to::Int, through::Int, sirfs::StructuralImpulseResponseFunction{E, M, N}) where {E<:FixedEstimated, M, N}
     return through_a(from, to, through, sirfs.irfs.value)
 end
-function through_a(from::Int, to::Int, through::Int, sirfs::StructuralImpulseResponseFunction{E}) where {E<:BayesianEstimated}
+function through_a(from::Int, to::Int, through::Int, sirfs::StructuralImpulseResponseFunction{E, M, N}) where {E<:BayesianEstimated, M, N}
     f = x -> through_a(from, to, through, x)
     return map(f, sirfs.irfs)
 end

@@ -1,5 +1,4 @@
-# TODO: test all the funcitonality in this file
-
+# TODO: Write documentation for functions
 
 function _add_neighbours!(stack, path, current_variable, current_time, A, B)
     n = size(A, 1)
@@ -46,7 +45,7 @@ function find_paths(A::AbstractMatrix, B::AbstractMatrix, from::Tuple{Int, Int},
             # no longer reach the from node
             continue
         end
-        add_neighbours!(stack, current_path, current_variable, current_time, A, B)
+        _add_neighbours!(stack, current_path, current_variable, current_time, A, B)
     end
 
     return reverse.(final_paths)
@@ -114,17 +113,9 @@ end
 We can also do this for Bayesian estimated methods, since, given the path, the calculations are fast.
 """
 function calculate_path_effect(svar::SVAR{E}, path) where {E<:BayesianEstimated}
-    ndraws = size(svar.A.value, 3)
-    nchains = size(svar.A.value, 4)
-    path_effects = Array{Float64}(undef, ndraws, nchains)
-    for d in 1:ndraws
-        for c in 1:nchains
-            A = svar.A.value[:,:,d,c]
-            B = svar.B.value[:,:,d,c]
-            path_effects[d, c] = calculate_path_effect(A, B, path)
-        end
-    end
-    return path_effects
+    f = (A, B) -> calculate_path_effect(A, B, path)
+    path_effects = map(f, svar.A, svar.B)
+    return  path_effects
 end
 
 function mediation(svar::SVAR{E}, from::Tuple{Int, Int}, to::Tuple{Int, Int}, condition::Function) where {E<:FixedEstimated}
@@ -136,9 +127,15 @@ This should work for all estimation methods, since, given the paths, the calcula
 """
 function mediation(svar::SVAR{E}, paths, condition::Function) where {E<:Estimated}
     mediating_paths = filter(condition, paths)
-    mediating_effect = 0
+    if length(mediating_paths) == 0
+        throw(ErrorException("All paths have been sorted out by the condition"))
+    end
+    mediating_effect = 0 .* calculate_path_effect(svar, mediating_paths[1])
     for p in mediating_paths
-        mediating_effect .+= calculate_path_effect(svar, p)
+        mediating_effect += calculate_path_effect(svar, p)
+    end
+    if E <: BayesianEstimated
+        return BayesianEstimated(mediating_effect, nothing)
     end
     return mediating_effect
 end

@@ -1,6 +1,8 @@
 using TransmissionMechanisms
+using MacroEconometrics
 using Test
 
 @testset "TransmissionMechanisms.jl" begin
-    # Write your tests here.
+    include("test-paths.jl")
 end
+

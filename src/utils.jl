@@ -1,3 +1,4 @@
+# TODO: move map to MacroEconometrics.jl
 function Base.map(f::Function, be::BayesianEstimated; meta=nothing)
     nd = ndims(be)
     return BayesianEstimated(Base.mapslices(f, be.value; dims=collect(1:(nd-2))), meta)

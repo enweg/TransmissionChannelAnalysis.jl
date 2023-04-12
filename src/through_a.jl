@@ -1,12 +1,3 @@
-# TODO: test the functions in this file
-# TODO: move the map functionality to MacroEconometrics.jl
-"""
-Mediation through a single variable
-This corresponds to the statement
-through_t || through_{t+1} || ... || through_{t+h}
-i.e. the effect that must go through the `through` 
-variable at some horizon
-"""
 function _Q_through_a(
     from::Int, 
     to::Int, 
@@ -24,6 +15,25 @@ function _Q_through_a(
     meffect *= sirfs[to, through, horizon-c[end]+1]
     return meffect
 end
+"""
+    through_a(from::Int, to::Int, through::Int, sirfs::Array{<:Real, 3})
+    through_a(from::Int, to::Int, through::Int, sirfs::StructuralImpulseResponseFunction{<:FixedEstimated, M, N})
+    through_a(from::Int, to::Int, through::Int, sirfs::StructuralImpulseResponseFunction{<:BayesianEstimated, M, N})
+
+Mediation through a single variable This corresponds to the statement through_t
+|| through_{t+1} || ... || through_{t+h} i.e. the effect that must go through
+the `through` variable at some horizon. Uses the 'algebra' of path specific
+effects. 
+
+## Arguments
+
+- `from::Int`: Variable number of the origin variable
+- `to::Int`: Variable number of the destination variable
+- `through::Int`: Variable number of the mediating variable
+- `sirfs`: Structural IRFs of dimension n×n×H where n is the
+  number of variables, and H is the number of horizons, including horizon zero.
+  The structural IRFs are of the form `sirfs[to, from, horizon]`. 
+"""
 function through_a(from::Int, to::Int, through::Int, sirfs::Array{T, 3}) where {T<:Real}
     horizon = size(sirfs, 3)
     meffect = zeros(horizon)

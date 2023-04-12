@@ -1,4 +1,3 @@
-# TODO: Write documentation for functions
 
 function _add_neighbours!(stack, path, current_variable, current_time, A, B)
     n = size(A, 1)
@@ -26,6 +25,39 @@ function _add_neighbours!(stack, path, current_variable, current_time, A, B)
     end
 end
 
+"""
+    find_paths(svar::SVAR{<:FixedEstimated}, from::Tuple{Int, Int}, to::Tuple{Int, Int})
+    find_paths(A::AbstractMatrix, B::AbstractMatrix, from::Tuple{Int, Int}, to::Tuple{Int, Int})
+
+Find all directed causal paths from one variable to another variable in a SVAR. 
+
+The algorithm goes backwards from the 'to' node to the 'from' node.
+
+## Arguments 
+
+- `A::AbstractMatrix`: Contemporanous matrix of a SVAR of dimensions n×n where n
+  is the number of variables in the SVAR
+- `B::AbstractMatrix`: Lag matrix of the SVAR. This is of the form [B_1 B_2 B_3
+  ... B_p] so that B is of dimension n×np where p is the number of lags in the
+  SVAR
+- `svar::SVAR`: an `SVAR` model from the `MacroEconometrics.jl` package.
+- `from::Tuple{Int, Int}`: (from variable number, from time period)
+- `to::Tuple{Int, Int}`: (to variable number, to time period)
+
+## Returns
+
+An array of paths where each path is an array of Tuple{Int, Int} where the
+tuples are of the form (Variable, Time period).
+
+## Notes
+
+This method is computationally very expensive and therefore not provided for
+estimated models. Especially for Bayesian estimated models or Frequentist models
+using Bootstrapping, this method is pretty much infeasible since it takes too
+much time. Use one of the alternative methods in this package or use the Algebra
+of Transmission Effects to derive a custom effect.
+
+"""
 function find_paths(A::AbstractMatrix, B::AbstractMatrix, from::Tuple{Int, Int}, to::Tuple{Int, Int})
     stack = []
     final_paths = []
@@ -50,33 +82,6 @@ function find_paths(A::AbstractMatrix, B::AbstractMatrix, from::Tuple{Int, Int},
 
     return reverse.(final_paths)
 end
-
-
-"""
-
-Find all directed causal paths from one variable to another variable in a SVAR. 
-
-The algorithm goes backwards from the 'to' node to the 'from' node.
-
-## Arguments 
-
-- `svar::SVAR`: an `SVAR` model from the `MacroEconometrics.jl` package.
-- `from::Tuple{Int, Int}`: (from variable number, from time period)
-- `to::Tuple{Int, Int}`: (to variable number, to time period)
-
-## Returns
-
-An array of paths. 
-
-## Notes
-
-This method is computationally very expensive and therefore not provided for
-estimated models. Especially for Bayesian estimated models or Frequentist models
-using Bootstrapping, this method is pretty much infeasible since it takes too
-much time. Use one of the alternative methods in this package or use the Algebra
-of Transmission Effects to derive a custom effect. 
-
-"""
 function find_paths(svar::SVAR{E}, from::Tuple{Int, Int}, to::Tuple{Int, Int}) where {E<:FixedEstimated}
     A = svar.A.value
     B = svar.B.value
@@ -84,8 +89,26 @@ function find_paths(svar::SVAR{E}, from::Tuple{Int, Int}, to::Tuple{Int, Int}) w
     return find_paths(A, B, from, to)
 end
 
+"""
+    calculate_path_effect(A::AbstractMatrix, B::AbstractMatrix, path)
+    calculate_path_effect(svar::SVAR{<:FixedEstimated}, path)
 
-function calculate_path_effect(A::AbstractMatrix, B::AbstractMatrix, path)
+Calculate the causal effect along a directed path. 
+
+## Arguments
+
+- `A::AbstractMatrix`: Contemporanous matrix of the SVAR of dimension n×n where
+  n is the number of variables in the SVAR. 
+- `B::AbstractMatrix`: Lag matrix of the SVAR: B=[B_1 ... B_p] and thus B is of
+  dimension n×np where p is the number of lags in the SVAR. 
+- `path::Vector{Tuple{Int, Int}}`: The directed path. Each tuple is of the form
+  (variable number, time period)
+
+## Returns 
+
+- Returns a `Real`
+"""
+function calculate_path_effect(A::AbstractMatrix, B::AbstractMatrix, path::Vector{Tuple{Int, Int}})
     n = size(A, 1)
     path_effect = 1.0
     previous_node = path[1]
@@ -103,14 +126,21 @@ function calculate_path_effect(A::AbstractMatrix, B::AbstractMatrix, path)
     end
     return path_effect
 end
-function calculate_path_effect(svar::SVAR{E}, path) where {E<:FixedEstimated}
+function calculate_path_effect(svar::SVAR{E}, path::Vector{Tuple{Int, Int}}) where {E<:FixedEstimated}
     A = svar.A.value
     B = svar.B.value
 
     return calculate_path_effect(A, B, path)
 end
 """
-We can also do this for Bayesian estimated methods, since, given the path, the calculations are fast.
+    calculate_path_effect(svar::SVAR{<:BayesianEstimated}, path)
+
+## Returns
+
+- In case of a Bayesian estimated SVAR, the returned object will be of type
+`BayesianEstimated` with the last dimension corresponding to the chains, and the
+second to last dimension corresponding to the draws.
+
 """
 function calculate_path_effect(svar::SVAR{E}, path) where {E<:BayesianEstimated}
     f = (A, B) -> calculate_path_effect(A, B, path)
@@ -118,14 +148,38 @@ function calculate_path_effect(svar::SVAR{E}, path) where {E<:BayesianEstimated}
     return  path_effects
 end
 
+
+"""
+    mediation(svar::SVAR{<:FixedEstimated}, from::Tuple{Int, Int}, to::Tuple{Int, Int}, condition::Function)
+    mediation(svar::SVAR{<:Estimated}, paths, condition::Function) where {E<:Estimated}
+
+Calculate the mediation effect. This is the total path effect along multiple
+paths. The first version includes a seach for paths which is computationally
+expensive and thus only implemented for fixed SVARs and not for estimated SVARs.  
+
+## Arguments
+
+- `svar::SVAR`: SVAR model coming from `MacroEconometrics.jl`. 
+- `from::Tuple{Int, Int}`: Origin node of type (variable number, time period). 
+- `to::Tuple{Int, Int}`: Destination node. See `from`. 
+- `condition::Function`: A function returning a boolean. `condition` will be
+  forwarded to `filter` in order to filter the paths to only those that one is
+  interested in.
+- `paths::Vector{Vector{Tuple{Int, Int}}}`: A vector of paths. Also see
+  [`calculate_path_effect`](@ref)
+
+## Returns
+
+- The total effect along the filtered paths. 
+- In case of a Bayesian estimated SVAR, this will be a `BayesianEstimated`
+  object with the last dimension being the chains, and the second to last
+  dimension corresponding to the draws.
+"""
 function mediation(svar::SVAR{E}, from::Tuple{Int, Int}, to::Tuple{Int, Int}, condition::Function) where {E<:FixedEstimated}
     paths = find_paths(svar, from, to)
     return mediation(svar, paths, condition)
 end
-"""
-This should work for all estimation methods, since, given the paths, the calculations are fast.
-"""
-function mediation(svar::SVAR{E}, paths, condition::Function) where {E<:Estimated}
+function mediation(svar::SVAR{E}, paths::Vector{Vector{Tuple{Int, Int}}}, condition::Function) where {E<:Estimated}
     mediating_paths = filter(condition, paths)
     if length(mediating_paths) == 0
         throw(ErrorException("All paths have been sorted out by the condition"))

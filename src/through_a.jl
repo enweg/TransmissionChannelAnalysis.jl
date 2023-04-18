@@ -7,7 +7,8 @@ function _Q_through_a(
     c::Array{Int}
 ) where {T<:Real}
 
-    c = sort!(c)
+    # c = sort!(c)
+    !issorted(c) && sort!(c)
     meffect = sirfs[through, from, c[1]+1]
     for i in 2:lastindex(c)
         meffect *= sirfs[through, through, c[i]-c[i-1]+1]

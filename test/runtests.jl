@@ -1,12 +1,10 @@
 using TransmissionMechanisms
-using MacroEconometrics
 using Test
-using StableRNGs
+using Serialization
 using LinearAlgebra
-using Distributions
-using TSFrames, Dates
 
 @testset "TransmissionMechanisms.jl" begin
-    include("test-paths.jl")
-    include("test-through_a.jl")
+    # Write your tests here.
+    include("./simplifying.jl")
+    include("./transmission-function.jl")
 end

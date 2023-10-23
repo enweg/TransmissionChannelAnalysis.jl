@@ -1,4 +1,4 @@
-@raw"""
+@doc raw"""
 
     make_structural_B(A0_ortho::AbstractMatrix, Aplus_ortho::AbstractMatrix, p::Int, max_horizon::Int)
 
@@ -55,7 +55,7 @@ function make_structural_B(A0_ortho::AbstractMatrix, Aplus_ortho::AbstractMatrix
     return B
 end
 
-@raw"""
+@doc raw"""
 
     make_structural_B(A0_ortho::AbstractMatrix, Aplus_ortho::AbstractMatrix, p::Int, max_horizon::Int)
 
@@ -109,7 +109,7 @@ function make_structural_Qbb(irf0::AbstractMatrix, A0_ortho::AbstractMatrix, max
     return Qbb
 end
 
-@raw"""
+@doc raw"""
 
     make_structural_B(A0_ortho::AbstractMatrix, Aplus_ortho::AbstractMatrix, p::Int, max_horizon::Int)
 

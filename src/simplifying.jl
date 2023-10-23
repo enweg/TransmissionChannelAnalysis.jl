@@ -9,7 +9,7 @@ can be either a single boolean expression or a vector of boolean expressions.
 
 ## Arguments
 
-- `expr::Union{SymbolicUtils.BasicSymbolic{Bool}, Vector{SymbolicUtils.BasicSymbolic{Bool}}}`: 
+- `expr`: 
   A single boolean expression or a vector of boolean expressions from which AND 
   terms will be collected.
 - `rev::Bool=true`: (Optional) If `true`, the resulting AND terms are sorted in 
@@ -26,11 +26,11 @@ can be either a single boolean expression or a vector of boolean expressions.
 ```julia
 s = "x2 & x3 & !x2 & x5"
 cond = make_condition(s)
-collect_and_terms(cond)
+and_terms = TransmissionMechanisms.collect_and_terms(cond)
 ````
 
 """
-function collect_and_terms(expr::SymbolicUtils.BasicSymbolic{Bool}; rev = true)
+function collect_and_terms(expr; rev = true)
     stack = Any[expr]
     ands = []
     while length(stack) > 0
@@ -49,7 +49,7 @@ function collect_and_terms(expr::SymbolicUtils.BasicSymbolic{Bool}; rev = true)
     ps = sortperm(ands_str; rev = rev)
     return unique(ands[ps])
 end
-function collect_and_terms(expr::Vector{SymbolicUtils.BasicSymbolic{Bool}}; rev = true)
+function collect_and_terms(expr::AbstractVector; rev = true)
     out = [collect_and_terms(ex) for ex in expr]
     out = vcat(out...)
     out_str = string.(out)
@@ -84,9 +84,9 @@ digits, or the symbol 'T' representing `true`.
 
 ```julia
 @syms x1::Bool T::Bool y::Bool
-is_not_valid_variable_name(:x1)   # Returns false (valid variable name)
-is_not_valid_variable_name(:y)    # Returns true (invalid variable name)
-is_not_valid_variable_name(:T)    # Returns false (valid variable name)
+TransmissionMechanisms.is_not_valid_variable_name(x1)   # Returns false (valid variable name)
+TransmissionMechanisms.is_not_valid_variable_name(y)    # Returns true (invalid variable name)
+TransmissionMechanisms.is_not_valid_variable_name(T)    # Returns false (valid variable name)
 
 """
 function is_not_valid_variable_name(sym::SymbolicUtils.BasicSymbolic{Bool})
@@ -112,7 +112,7 @@ encountered, an error is raised.
 
 ## Arguments
 
-- `sym_vec::Union{SymbolicUtils.BasicSymbolic{Bool}, Vector{SymbolicUtils.BasicSymbolic{Bool}}}`: 
+- `sym_vec::Union{Any, Vector{Any}}`: 
   A single boolean symbolic variable or an array of boolean symbolic variables 
   representing variables to be converted to numerical indices.
 
@@ -125,12 +125,13 @@ encountered, an error is raised.
 
 ```julia
 @syms x1::Bool x2::Bool x3::Bool T::Bool y::Bool
-helper_sym_to_num(:x2)          # Returns [2]
-helper_sym_to_num([:x1, :x3, :T]) # Returns [1, 3, nothing]
-helper_sym_to_num(:y)            # Error: Variable names should start with 'x' followed by a number.
+TransmissionMechanisms.helper_sym_to_num(x2)          # Returns [2]
+TransmissionMechanisms.helper_sym_to_num(T)          # Returns [nothing]
+TransmissionMechanisms.helper_sym_to_num([x1, x3]) # Returns [1, 3]
+TransmissionMechanisms.helper_sym_to_num(y)            # Error: Variable names should start with 'x' followed by a number.
 
 """
-function helper_sym_to_num(sym_vec::Union{SymbolicUtils.BasicSymbolic{Bool}, Vector{SymbolicUtils.BasicSymbolic{Bool}}})
+function helper_sym_to_num(sym_vec::Union{Any, Vector{Any}})
     if !isa(sym_vec, AbstractVector)
         sym_vec = [sym_vec]
     end
@@ -258,7 +259,7 @@ this function checks whether something went wrong in the simplification process.
 - Returns `true` if the `term` includes any NOT and `false` otherwise. 
 
 """
-function contains_nots(term::SymbolicUtils.BasicSymbolic{Bool})
+function contains_nots(term::SymbolicUtils.BasicSymbolic{T}) where T
     term_string = string(term)
     return contains(term_string, "!")
 end

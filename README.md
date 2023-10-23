@@ -22,7 +22,7 @@ using TransmissionMechanisms
 
 from = 1
 h = 3
-s = join(["x$(3*i)" for i = 0:h], " | ")
+s = join(["x$(3 + 5*i)" for i = 0:h], " | ")
 cond = make_condition(s)
 tf = create_transmission_function(1, cond)
 tf(irfs, irfs_ortho)

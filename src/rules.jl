@@ -36,7 +36,15 @@ r_or_cummutative_1 = @acrule (Q(~x & (~y | ~z))) => (Q((~x & ~y) | (~x & ~z)))
 r_or_cummutative_2 = @acrule (Q(~x & (~y | ~z)) +(~~s)) => (Q((~x & ~y) | (~x & ~z)) + sum(~~s))
 r_or_cummutative_3 = @acrule (~m * Q(~x & (~y | ~z))) => (~m * Q((~x & ~y) | (~x & ~z)))
 r_or_cummutative_4 = @acrule (~m * Q(~x & (~y | ~z)) +(~~s)) => (~m * Q((~x & ~y) | (~x & ~z)) + sum(~~s))
-r_or_cummutative = Chain([r_or_cummutative_1, r_or_cummutative_2, r_or_cummutative_3, r_or_cummutative_4])
+r_or_cummutative_5 = @acrule (Q((~y | ~z) & ~x)) => (Q((~x & ~y) | (~x & ~z)))
+r_or_cummutative_6 = @acrule (Q((~y | ~z) & ~x &(~~s))) => (Q((~x & ~y &(~~s...)) | (~x & ~z &(~~s...))))
+r_or_cummutative_7 = @acrule (~m * Q((~y | ~z) & ~x)) => (~m * Q((~x & ~y) | (~x & ~z)))
+r_or_cummutative_8 = @acrule (~m * Q((~y | ~z) & ~x &(~~s))) => (~m * Q((~x & ~y &(~~s...)) | (~x & ~z &(~~s...))))
+r_or_cummutative = Chain([
+        r_or_cummutative_1, r_or_cummutative_2, r_or_cummutative_3, 
+        r_or_cummutative_4, r_or_cummutative_5, r_or_cummutative_6,
+        r_or_cummutative_7, r_or_cummutative_8
+])
 
 # Q(x & (x | y)) = Q(x)
 r_absorption_and_1 = @acrule (Q(~x & (~x | ~y))) => (Q(~x))

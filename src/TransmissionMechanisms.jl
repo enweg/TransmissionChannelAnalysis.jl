@@ -1,19 +1,15 @@
 module TransmissionMechanisms
 
-using SymbolicUtils
-using SymbolicUtils.Rewriters
-import SymbolicUtils.@syms
-export @syms
+WEGNER = "Wegner et al (2024)"
 
-include("./rules.jl")
 include("./simplifying.jl")
 include("./condition.jl")
 include("./transmission-function.jl")
 include("./structural-representation.jl")
 
+export Q
 export make_condition
-export create_transmission_function
-export make_structural_B, make_structural_Qbb
-export to_structural_transmission_model
+export to_transmission_irfs, transmission
+export make_structural_B, make_structural_Qbb, to_structural_transmission_model
 
 end

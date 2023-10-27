@@ -9,6 +9,7 @@ import Base.show
     Q(s::String, m::Number)
     Q(s::Vector{String})
     Q(s::Vector{String}, m::Vector{Number})
+    Q(i::Int)
 
 Represents a transmission condition. 
 
@@ -18,11 +19,22 @@ We denote with Q(b), where b is a Boolean statement, a transmission question.
 variables `x`` followed by a number, i.e. `x1`, `x2`, etc. Additionally, each
 Boolean statement should contain only AND (&) and NOT (!) statements. 
 
+**Important**: Users should only use the `Q(i::Int)` constructor. All other
+constructors are for internal use only. Misuse of the other constructors easily
+leads to mistakes. 
+
 ## Fields
 
 - `vars::Vector{String}`: Contains the variables. These will be Boolean
   statements containing only AND and NOT.
 - `multiplier::Vector{Number}`: Multiplier in front of Q(b). 
+
+## Arguments
+
+- `s::Union{String, Vector{String}}`: String representation of transmission
+  condition. 
+- `m::Union{Number, Vector{Number}}`: Multipliers for transmission conditions. 
+- `i::Int`: Variable number.
 
 ## Usage
 
@@ -54,6 +66,7 @@ end
 Q(s::String) = Q([s], [1.0])
 Q(s::String, m::Number) = Q([s], [m])
 Q(s::Vector{String}) = Q(s, ones(size(s)))
+Q(i::Int) = Q("x$i")
 
 """
     collect_terms(q::Q)

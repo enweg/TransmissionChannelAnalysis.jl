@@ -1,50 +1,114 @@
-@testset "collect_and_terms" begin
-    s = "x2 & x3 & !x2 & x5"
-    cond = make_condition(s)
-    and_terms = TransmissionMechanisms.collect_and_terms(cond)
-    @test all(string.(and_terms) .== ["x5", "x3", "x2", "!x2"])
+
+@testset "Q constructors" begin
+    q1 = TransmissionMechanisms.Q("x1")
+    q2 = TransmissionMechanisms.Q("x2", -1.5)
+    q3 = TransmissionMechanisms.Q(["x1", "x2"])
+    q4 = TransmissionMechanisms.Q(["x1", "x2"], [-1, 2])
+
+    @test q1.vars[1] == "x1"
+    @test q2.vars[1] == "x2"
+    @test q2.multiplier[1] == -1.5
+    @test length(q3.vars) == 2
+    @test all(q4.multiplier .== [-1, 2])
 end
 
-@testset "is_not_valid_variable_name" begin
-    @syms x1::Bool T::Bool y::Bool
-    @test !TransmissionMechanisms.is_not_valid_variable_name(x1)   # Returns false (valid variable name)
-    @test TransmissionMechanisms.is_not_valid_variable_name(y)    # Returns true (invalid variable name)
-    @test !TransmissionMechanisms.is_not_valid_variable_name(T)    # Returns false (valid variable name)
+@testset "collect_terms" begin
+    q = TransmissionMechanisms.Q(["x1", "x1"], [1, 1])  
+    q = TransmissionMechanisms.collect_terms(q)
+    @test length(q.vars) == 1
+    @test q.vars[1] == "x1"
+    @test q.multiplier[1] == 2
+
+    q = TransmissionMechanisms.Q(["x1", "", "x1"], [1, 1, -1])  
+    q = TransmissionMechanisms.collect_terms(q)
+    @test length(q.vars) == 1
+    @test q.vars[1] == ""
+    @test q.multiplier[1] == 1
 end
 
-@testset "helper_sym_to_num" begin
-    @syms x1::Bool x2::Bool x3::Bool T::Bool y::Bool
-    nums = TransmissionMechanisms.helper_sym_to_num(x2)          # Returns [2]
-    @test all(nums .== [2])
-    nums = TransmissionMechanisms.helper_sym_to_num(T)          # Returns [nothing]
-    @test all(isnothing.(nums))
-    nums = TransmissionMechanisms.helper_sym_to_num([x1, x3]) # Returns [1, 3, nothing]
-    @test all(nums .== [1, 3])
-    @test_throws "Variable names should" TransmissionMechanisms.helper_sym_to_num(y)            # Error: Variable names should start with 'x' followed by a number.
+@testset "string_and" begin
+    s = TransmissionMechanisms.string_and("", "x1")
+    @test s == "x1"
+
+    s = TransmissionMechanisms.string_and("x1", "x1")
+    @test s == "x1"
+
+    s = TransmissionMechanisms.string_and("x1 & x2", "x1")
+    @test s == "x2 & x1"
+
+    s = TransmissionMechanisms.string_and("!x1 & x2", "x1")
+    @test s == "x2 & x1 & !x1"
+
+    s = TransmissionMechanisms.string_and("x1", "x2")
+    @test s == "x2 & x1"
 end
 
-@testset "get_terms" begin
-    @syms x2::Bool x3::Bool Q(::Bool)::Real
-    s = "x2 & !x3"
-    cond = make_condition(s)
-    term = TransmissionMechanisms.get_terms(cond)  # [Q(x2), -Q(x2 & x3)]
-    @test all([isequal(x, y) for (x, y) in zip(term, [-Q(x3 & x2), Q(x2)])])
+@testset "AND" begin
+    x = [TransmissionMechanisms.Q("x$i") for i = 1:5]
+
+    q = x[1] & x[2]
+    @test q.vars[1] == "x2 & x1"
+
+    q = x[1] & TransmissionMechanisms.Q(["x1", "x2"], [1, 1])
+    @test q.vars[1] == "x1"
+    @test q.vars[2] == "x2 & x1"
+    @test all(q.multiplier .== [1, 1])
+
+
+    q = x[1] & TransmissionMechanisms.Q(["x1", "x2"], [1, -2])
+    @test q.vars[1] == "x1"
+    @test q.vars[2] == "x2 & x1"
+    @test all(q.multiplier .== [1, -2])
 end
 
-@testset "helper_Q" begin
-    s = "x2 & !x3"
-    cond = make_condition(s)
-    terms, multiplier, variables, variable_nums = TransmissionMechanisms.helper_Q(cond)
-    @test all(multiplier .== [1, -1])
-    @test all(variable_nums .== [[2], [2, 3]])
+@testset "OR" begin
+    x = [TransmissionMechanisms.Q(i) for i = 1:5]
+
+    q = x[1] | x[2]
+    @test length(q.vars) == 3
+    @test "x1" in q.vars
+    @test "x2" in q.vars
+    @test "x2 & x1" in q.vars
+
+    @test q.multiplier[findfirst(==("x1"), q.vars)] == 1
+    @test q.multiplier[findfirst(==("x2"), q.vars)] == 1
+    @test q.multiplier[findfirst(==("x2 & x1"), q.vars)] == -1
+
+    q = (x[1] & x[2]) | x[1]
+    @test length(q.vars) == 1
+    @test q.vars[1] == "x1"
+    @test q.multiplier[1] == 1
 end
 
-@testset "contains_nots" begin
-    s = "x2"
-    term = make_condition(s)
-    @test !TransmissionMechanisms.contains_nots(term)
+@testset "NOT" begin
+    x = [TransmissionMechanisms.Q(i) for i = 1:5]
 
-    s = "x2 & !x3"
-    term = make_condition(s)
-    @test TransmissionMechanisms.contains_nots(term)
+    q = !x[1]
+    @test q.vars[1] == "!x1"
+    
+    q = !(x[1] & x[2])
+    @test length(q.vars) == 2
+    @test "" in q.vars
+    @test "x2 & x1" in q.vars
+    @test q.multiplier[findfirst(==(""), q.vars)] == 1
+    @test q.multiplier[findfirst(==("x2 & x1"), q.vars)] == -1
+
+    q = !(x[1] | x[2])
+    @test length(q.vars) == 4
+    @test "" in q.vars
+    @test "x1" in q.vars
+    @test "x2" in q.vars
+    @test "x2 & x1" in q.vars
+    @test q.multiplier[findfirst(==(""), q.vars)] == 1
+    @test q.multiplier[findfirst(==("x1"), q.vars)] == -1
+    @test q.multiplier[findfirst(==("x2"), q.vars)] == -1
+    @test q.multiplier[findfirst(==("x2 & x1"), q.vars)] == 1
+
+    # An equivalent way of writing the above is Note that this representation
+    # results in a shorter calculation. TODO: Can we make sure that the first
+    # expression above also stops simplifying at !x1 & !x2?
+    q = !x[1] & !x[2]
+    @test length(q.vars) == 1
+    @test "!x2 & !x1" in q.vars
+    @test q.multiplier[1] == 1
 end

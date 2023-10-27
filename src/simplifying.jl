@@ -155,7 +155,7 @@ faster than having to simplify "!x1" type of terms and using the first
 calculation method. 
 """
 function (!)(q1::Q)
-    if length(q1.vars) == 1
+    if length(q1.vars) == 1 && count(r"x\d+", q1.vars[1]) == 1
         vars = "!$(q1.vars[1])"
         return Q(vars, q1.multiplier[1])
     end

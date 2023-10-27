@@ -166,6 +166,8 @@ function transmission(from::Int, B::Matrix{T}, Qbb::Matrix{T}, var_and::Vector{I
         apply_not!(B_tilde, Qbb_tilde, from, v)
     end
     irfs = (I - B_tilde) \ Qbb_tilde[:, from]
+    # var_and and var_not are empty if effect reduced to total effect
+    isempty(var_and) && isempty(var_not) && return irfs
     irfs[1:maximum(vcat(var_and, var_not))] .= T(NaN)
     return irfs
 end 

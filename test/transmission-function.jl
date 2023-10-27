@@ -136,6 +136,16 @@ function test6(irfs, irfs_ortho, B, Qbb)
     return hcat(manual_1, manual_2, effect)
 end
 
+function test7(irfs, irfs_ortho, B, Qbb)
+    manual_1 = irfs[:, 1]
+    manual_2 = irfs[:, 1]
+
+    cond = make_condition("(x1 | x2 | x3) | !(x1 | x2 | x3)")
+    effect = transmission(1, B, Qbb, cond)
+
+    return hcat(manual_1, manual_2, effect)
+end
+
 @testset "create_transmission_function" begin
 
     irfs = deserialize("./simulated-svar-k3-p1/irfs.jls")
@@ -164,5 +174,7 @@ end
     @test isapprox(mat[:, 1], mat[:, 3]; atol = sqrt(eps()))
     mat = test6(irfs, irfs_ortho, B, Qbb)
     mat = mat[6:end, :]
+    @test isapprox(mat[:, 1], mat[:, 3]; atol = sqrt(eps()))
+    mat = test7(irfs, irfs_ortho, B, Qbb)
     @test isapprox(mat[:, 1], mat[:, 3]; atol = sqrt(eps()))
 end

@@ -156,7 +156,7 @@ function check_contradiction(var_and::Vector{Vector{Int}}, var_not::Vector{Vecto
     return any(contradictions), contradictions
 end
 
-REMOVE_CONTRADICTIONS::Bool = false
+REMOVE_CONTRADICTIONS::Bool = true
 """
     remove_contradictions(q::Q)
 

@@ -123,15 +123,104 @@ function string_and(s1::String, s2::String)
 end
 
 """
+    check_contradiction(var_and::Vector{Int}, var_not::Vector{Int})
+    check_contradiction(var_and::Vector{Vector{Int}}, var_not::Vector{Vector{Int}})
+    
+Check whether there is a contradiction of the form x1 & !x1. 
+
+## Arguments
+
+- `var_and::Union{Vector{Int}, Vector{Vector{Int}}}`: AND variable numbers
+  obtained from [`get_varnums_and_multiplier`](@ref). 
+- `var_not::Union{Vector{Int}, Vector{Vector{Int}}}`: NOT variable numbers
+  obtained from [`get_varnums_and_multiplier`](@ref)
+
+## Returns
+
+1. `Bool` indicating whether there are any contradictions. 
+2. `Vector{Bool}` indicating which elements yielded a contradiction.
+
+## Notes
+
+- This is used in [`remove_contradiction`](@ref) to remove contradicting terms.
+  This speeds up simplification of terms, since the total number of terms can
+  often be reduced. 
+
+"""
+function check_contradiction(var_and::Vector{Int}, var_not::Vector{Int})
+    contradictions = [va in var_not for va in var_and]
+    return any(contradictions), contradictions
+end
+function check_contradiction(var_and::Vector{Vector{Int}}, var_not::Vector{Vector{Int}})
+    contradictions = [check_contradiction(va, vn)[1] for (va, vn) in zip(var_and, var_not)]
+    return any(contradictions), contradictions
+end
+
+REMOVE_CONTRADICTIONS::Bool = false
+"""
+    remove_contradictions(q::Q)
+
+Remove contradicting terms. 
+
+A terms is deemed contradicting if it includes some "xi & !xi". This would
+result in the entire Boolean statement to be false, and thus in the effect of
+this terms to be zero. 
+
+## Arguments
+
+- `q::Q`: A transmission condition. See also [`Q`](@ref) and
+  [`make_condition`](@ref). 
+
+## Returns
+
+- If `TransmissionMechanisms.REMOVE_CONTRADICTIONS == false`, then `q` will
+  simply be returned again. 
+- If `TransmissionMechanisms.REMOVE_CONTRADICTIONS == false`, then 
+    1. If all terms are contradicting, the `Q("", 0)` will be retuned, which has
+       a transmission effect of zero. 
+    2. If some terms are non-contradicting, then a transmission condition
+       consisting of only the non-contradicting terms will be returned. 
+
+## Examples
+
+```julia
+TransmissionMechanisms.REMOVE_CONTRADICTIONS = true
+q = TransmissionMechanisms.Q("x1", 1)
+remove_contradictions(q)  # will return q again since no contradictions exist
+
+q = TransmissionMechanisms.Q("x1 & !x1", 1)
+remove_contradictions(q)  # Will return Q("", 0)
+
+q = TransmissionMechanisms.Q(["x1 & !x1", "x1 & x2"], [1, 1])
+remove_contradictions(q)  # Will return Q("x1 & x2", 1)
+```
+"""
+function remove_contradictions(q::Q)
+    global REMOVE_CONTRADICTIONS
+    !REMOVE_CONTRADICTIONS && return q
+
+    var_and, var_not, _ = get_varnums_and_multiplier(q)
+    has_contradiction, contradictions =  check_contradiction(var_and, var_not)
+    if has_contradiction
+        all(contradictions) && return Q("", 0)  # This will later result in a zero
+        return Q(q.vars[(!).(contradictions)], q.multiplier[(!).(contradictions)])
+    end
+    return q
+end
+
+
+"""
     Base.&(q1::Q, q2::Q)
 
 Combine two transmission conditions using AND. 
 """
 function (&)(q1::Q, q2::Q)
     if length(q1.vars) == 1
-        return collect_terms(Q([string_and(q2.vars[i], q1.vars[1]) for i = 1:lastindex(q2.vars)], q1.multiplier[1]*q2.multiplier))
+        q = collect_terms(Q([string_and(q2.vars[i], q1.vars[1]) for i = 1:lastindex(q2.vars)], q1.multiplier[1]*q2.multiplier))
+        return remove_contradictions(q)
     elseif length(q2.vars) == 1
-        return collect_terms(Q([string_and(q1.vars[i], q2.vars[1]) for i = 1:lastindex(q1.vars)], q2.multiplier[1]*q1.multiplier))
+        q = collect_terms(Q([string_and(q1.vars[i], q2.vars[1]) for i = 1:lastindex(q1.vars)], q2.multiplier[1]*q1.multiplier))
+        return remove_contradictions(q)
     else
         qs = [Q(q1.vars[i], q1.multiplier[i]) & q2 for i = 1:lastindex(q1.vars)]
         vars = reduce(vcat, [q.vars for q in qs])

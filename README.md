@@ -9,35 +9,49 @@
 Calculate the transmission effect along a collection of paths in an SVAR. See
 paper for description. 
 
-## Example
+## Information for Users
 
-Say you have a SVAR(4) with five endogenous variables. You are interested in the
-effect going through $y_{3}$ in any period. Since there are five endogenous
-variables, we have the following variable definitions: 
+Variables follow the convention that they start with "x" followed by a
+number. The number corresponds to the variable number in the rewritten
+structural form in the paper. For example, for a SVAR with $k$ variables, the
+following mapping applies 
 
-1. $y_{3, 0} \to x_3$
-2. $y_{3, 1} \to x_8$
-3. $y_{3, h} \to x_{3+5h}$
+- $y_{1, t} \to x_1$
+- $y_{2, t} \to x_2$
+- ...
+- $y_{k, t} \to x_k$
+- $y_{1, t+1} \to x_{k+1}$ 
+- ...
 
-We are therefore interested in the transmission effect described by the Boolean
-statement $\lor_{i=0}^h x_{3 + 5i}$ which can be calculated in the following
-way: 
+Transmission mechanisms are defined in terms of Boolean statements. To create
+a transmission condition, first create a string corresponding to the desired
+Boolean statement. For example, if the interest is in the transmission along
+the paths that go through $x_2$ but not through $x_3$ or $x_4$ onto $x_5$,
+then the string is of the form 
 
 ```julia
-using TransmissionMechanisms
+s = "x1 & !x3 & !x4".
+```
+This could equivalently be represented as `x1 & !(x3 | x4)`, however, the above
+representation is more efficient.  
 
-from = 1
-h = 3
-s = join(["x$(3 + 5*i)" for i = 0:h], " | ")
+String representations of Boolean statements can then be transformed into
+transmission conditions using `make_condition` as follows
+
+```julia
 cond = make_condition(s)
-tf = create_transmission_function(1, cond)
-tf(irfs, irfs_ortho)
 ```
 
-In the code above, we assumed that the structural shock of interest is the
-first, and we assumed that `irfs` and `irfs_ortho` have already been created.
-For details see the documentation. 
+`cond` is now of type `Q`, which represents a transmission condition or
+**Q**ery. The effect of this transmission query can be calculated using
+`transmission` as follows
 
-> Any Boolean statement can be used, as long as the variables start with $x$
-> followed by a number. This follows the paper. AND is represented by `&`, NOT
-> is represented by `!`, and OR is represented by `|`. 
+```julia
+from_shock = 1
+effect = transmission(from_shock, B, Qbb, cond)
+```
+
+where `B` and `Qbb` correspond to the structural matrices in the rewritten
+structural form (also see the documentation for transmission). To obtain `B` and
+`Qbb` from an estimated and (partially) identified SVAR, use
+`to_structural_transmission_model`. 

@@ -1,6 +1,7 @@
 function test1(irfs, irfs_ortho, B, Qbb)
     cond = make_condition("!x2")
     effect = transmission(1, B, Qbb, cond)
+    effect_irfs = transmission(1, irfs, irfs_ortho, cond; method = :irfs)
 
     B_tilde = copy(B)
     Qbb_tilde = copy(Qbb)
@@ -10,7 +11,7 @@ function test1(irfs, irfs_ortho, B, Qbb)
     manual_2 = (inv(I - B_tilde)*Qbb_tilde)[:, 1]
     manual_1 = irfs[:, 1] - irfs[2, 1] * irfs_ortho[:, 2] / irfs_ortho[2, 2];
     manual_2 = manual_2[:, 1]
-    return hcat(manual_1, manual_2, effect)
+    return hcat(manual_1, manual_2, effect, effect_irfs)
 end
 
 function test2(irfs, irfs_ortho, B, Qbb)
@@ -36,14 +37,17 @@ function test2(irfs, irfs_ortho, B, Qbb)
     
     cond = make_condition("x3 & !x2")
     effect = transmission(1, B, Qbb, cond)
+    effect_irfs = transmission(1, irfs, irfs_ortho, cond; method = :irfs)
+
     
-    return hcat(manual_1, manual_2, effect)
+    return hcat(manual_1, manual_2, effect, effect_irfs)
 end
 
 function test3(irfs, irfs_ortho, B, Qbb)
     cond = make_condition("x2 & !x2")
     effect = transmission(1, B, Qbb, cond)
-    return hcat(zeros(size(irfs, 1), 2), effect)
+    effect_irfs = transmission(1, irfs, irfs_ortho, cond; method = :irfs)
+    return hcat(zeros(size(irfs, 1), 2), effect, effect_irfs)
 end
 
 function test4(irfs, irfs_ortho, B, Qbb)
@@ -54,14 +58,14 @@ function test4(irfs, irfs_ortho, B, Qbb)
     B_tilde = copy(B)
     Qbb_tilde = copy(Qbb)
     Qbb_tilde[[3, 4], 1] .= 0
-    B_tilde[[3, 4], 1] .= 0
+    B_tilde[3:end, 1] .= 0
 
     manual_2_part1 = inv(I - B_tilde) * Qbb_tilde 
 
     B_tilde = copy(B)
     Qbb_tilde = copy(Qbb)
     Qbb_tilde[4,1] = 0
-    B_tilde[4, [1, 2, 4]] .= 0
+    B_tilde[4:end, [1, 2, 4]] .= 0
 
     manual_2_part2 = inv(I - B_tilde) * Qbb_tilde
 
@@ -69,7 +73,7 @@ function test4(irfs, irfs_ortho, B, Qbb)
     Qbb_tilde = copy(Qbb)
     Qbb_tilde[[3, 4], 1] .= 0
     B_tilde[[3, 4], 1] .= 0
-    B_tilde[4, [1, 2]] .= 0
+    B_tilde[4:end, [1, 2]] .= 0
 
     manual_2_part3 = inv(I - B_tilde) * Qbb_tilde
 
@@ -78,8 +82,9 @@ function test4(irfs, irfs_ortho, B, Qbb)
     
     cond = make_condition("((x2 & !x3) | (!x2 & x3))")
     effect = transmission(1, B, Qbb, cond)
+    effect_irfs = transmission(1, irfs, irfs_ortho, cond; method = :irfs)
     
-    return hcat(manual_1, manual_2, effect)
+    return hcat(manual_1, manual_2, effect, effect_irfs)
 end
 
 function test5(irfs, irfs_ortho, B, Qbb)
@@ -111,9 +116,10 @@ function test5(irfs, irfs_ortho, B, Qbb)
     
     cond = make_condition("x2 | x5")
     effect = transmission(1, B, Qbb, cond)
+    effect_irfs = transmission(1, irfs, irfs_ortho, cond; method = :irfs)
     
     
-    return hcat(manual_1, manual_2, effect)
+    return hcat(manual_1, manual_2, effect, effect_irfs)
 end
 
 function test6(irfs, irfs_ortho, B, Qbb)
@@ -132,8 +138,9 @@ function test6(irfs, irfs_ortho, B, Qbb)
     
     cond = make_condition("x2 & !x3 & !x4 & !x5")
     effect = transmission(1, B, Qbb, cond)
+    effect_irfs = transmission(1, irfs, irfs_ortho, cond; method = :irfs)
     
-    return hcat(manual_1, manual_2, effect)
+    return hcat(manual_1, manual_2, effect, effect_irfs)
 end
 
 function test7(irfs, irfs_ortho, B, Qbb)
@@ -142,8 +149,9 @@ function test7(irfs, irfs_ortho, B, Qbb)
 
     cond = make_condition("(x1 | x2 | x3) | !(x1 | x2 | x3)")
     effect = transmission(1, B, Qbb, cond)
+    effect_irfs = transmission(1, irfs, irfs_ortho, cond; method = :irfs)
 
-    return hcat(manual_1, manual_2, effect)
+    return hcat(manual_1, manual_2, effect, effect_irfs)
 end
 
 @testset "create_transmission_function" begin
@@ -158,23 +166,38 @@ end
     mat = mat[3:end, :]
     @test isapprox(mat[:, 1], mat[:, 3]; atol = sqrt(eps()))
     @test isapprox(mat[:, 1], mat[:, 2]; atol = sqrt(eps()))
+    @test isapprox(mat[:, 1], mat[:, 4]; atol = sqrt(eps()))
+
     mat = test2(irfs, irfs_ortho, B, Qbb)
     mat = mat[4:end, :]    
     @test isapprox(mat[:, 1], mat[:, 3]; atol = sqrt(eps()))
     @test isapprox(mat[:, 1], mat[:, 2]; atol = sqrt(eps()))
+    @test isapprox(mat[:, 1], mat[:, 4]; atol = sqrt(eps()))
+
     mat = test3(irfs, irfs_ortho, B, Qbb)
     mat = mat[3:end, :]
     @test isapprox(mat[:, 1], mat[:, 3]; atol = sqrt(eps()))
     @test isapprox(mat[:, 1], mat[:, 2]; atol = sqrt(eps()))
+    @test isapprox(mat[:, 1], mat[:, 4]; atol = sqrt(eps()))
+
     mat = test4(irfs, irfs_ortho, B, Qbb)
     mat = mat[4:end, :]
     @test isapprox(mat[:, 1], mat[:, 3]; atol = sqrt(eps()))
+    @test isapprox(mat[:, 1], mat[:, 2]; atol = sqrt(eps()))
+    @test isapprox(mat[:, 1], mat[:, 4]; atol = sqrt(eps()))
+
     mat = test5(irfs, irfs_ortho, B, Qbb)
     mat = mat[6:end, :]
     @test isapprox(mat[:, 1], mat[:, 3]; atol = sqrt(eps()))
+    @test isapprox(mat[:, 1], mat[:, 2]; atol = sqrt(eps()))
+    @test isapprox(mat[:, 1], mat[:, 4]; atol = sqrt(eps()))
+
     mat = test6(irfs, irfs_ortho, B, Qbb)
     mat = mat[6:end, :]
     @test isapprox(mat[:, 1], mat[:, 3]; atol = sqrt(eps()))
+    @test isapprox(mat[:, 1], mat[:, 4]; atol = sqrt(eps()))
+
     mat = test7(irfs, irfs_ortho, B, Qbb)
     @test isapprox(mat[:, 1], mat[:, 3]; atol = sqrt(eps()))
+    @test isapprox(mat[:, 1], mat[:, 4]; atol = sqrt(eps()))
 end

@@ -156,7 +156,7 @@ function check_contradiction(var_and::Vector{Vector{Int}}, var_not::Vector{Vecto
     return any(contradictions), contradictions
 end
 
-REMOVE_CONTRADICTIONS = true
+REMOVE_CONTRADICTIONS = Ref(true)
 """
     remove_contradictions(q::Q)
 
@@ -197,7 +197,7 @@ remove_contradictions(q)  # Will return Q("x1 & x2", 1)
 """
 function remove_contradictions(q::Q)
     global REMOVE_CONTRADICTIONS
-    !REMOVE_CONTRADICTIONS && return q
+    !REMOVE_CONTRADICTIONS[] && return q
 
     var_and, var_not, _ = get_varnums_and_multiplier(q)
     has_contradiction, contradictions =  check_contradiction(var_and, var_not)

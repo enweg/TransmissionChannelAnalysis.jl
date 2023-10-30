@@ -1,92 +1,122 @@
+using LinearAlgebra
+
 """
-    create_transmission_function(from::Int, [to::Int,] condition::SymbolicUtils.BasicSymbolic{Bool})
+    get_varnums_and_multiplier(q::Q)
 
-Create a transmission function based on a boolean condition.
+Obtain the AND and NOT expressions of a transmission condition. Also return the
+multiplier for each term. 
 
-This function generates a function that calculates the transmission effect from
-the `from`th variables to the optional `to`th variable. If no `to` is given, the
-effect is calculated for all destination nodes. The transmission paths must
-satisfy the Boolean statement given in `condition` which can be created using
-[`make_condition`](@ref).
+A valid transmission condition is a set of terms involving only AND and NOT
+expressions. For each term, the AND and NOT expressions are collected and a
+vector of the respective variable numbers is returned. 
 
 ## Arguments
 
-- `from::Int`: Index of the variable from which the transmission starts.
-- `[to::Int]`: (Optional) Index of the variable to which the transmission ends. 
-  If omitted, the returned function calcuates the effect for all destination
-  nodes. 
-- `condition::SymbolicUtils.BasicSymbolic{Bool}`: Boolean condition specifying 
-  the transmission mechanism. The condition is represented as a boolean expression 
-  using variables starting with `x` and can be created using [`make_condition`](@ref).
+- `q::Q`: A transmission condition. See also [`Q`](@ref). 
 
 ## Returns
 
-- Returns a transmission function that can be applied to impulse response functions 
-  (`irfs`) and orthogonalized impulse response functions (`irfs_ortho`) to compute 
-  the transmission effects. The first argument in the returned function is
-  `irfs` and the second arguement is `irfs_ortho`. Both should be matrices
-  corresponding the the structural and orthogonalised IRFs respectively. Both
-  should be square and of dimension `k*(h+1)` with `h` being the maximum horizon
-  and `k` being the number of variables. The structural version can, for
-  example, be obtained via `irfs = inv(I - B) * Qbb`, with `B` and `Qbb`
-  obtained from [`to_structural_transmission_model`](@ref).
+1. `and_nums::Vector{Vector{Int}}`: Contains for each term a vector of variable
+   numbers that are included via AND in the term. 
+2. `and_not_nums::Vector{Vector{Int}}`: Contains for each term a vector of
+   variable numbers that are included via NOT in the term. 
+3. `multiplier::Vector{Number}`: Contains for each term the multiplier. 
 
 ## Examples
 
 ```julia
-s = "x2 & !x3"
-cond = make_condition(s)
-tf = create_transmission_function(1, cond)
-irfs = randn(3, 3)
-irfs_ortho = randn(3, 3)
-tf(irfs, irfs_ortho)
-````
+q = Q(["x1", "!x2", "x1 & !x2"], [1, 2, 3])
+and_nums, and_not_nums, multiplier = get_varnums_and_multiplier(q)
+# output: 
+# and_nums = [[1], [], [1]]
+# and_not_nums = [[], [2], [2]]
+# multiplier = [1, 2, 3]
+```
+"""
+function get_varnums_and_multiplier(q::Q)
+    and_nums = [collect([parse(Int, m[1]) for m in eachmatch(r"(?<!!)x(\d+)", q.vars[i])]) for i = 1:lastindex(q.vars)]
+    and_not_nums = [collect([parse(Int, m[1]) for m in eachmatch(r"!x(\d+)", q.vars[i])]) for i in 1:lastindex(q.vars)]
+    return and_nums, and_not_nums, q.multiplier
+end
 
 """
-function create_transmission_function(from::Int, to::Int, condition::SymbolicUtils.BasicSymbolic{Bool})
-    terms, multiplier, _, variable_nums = helper_Q(condition)
-    println(variable_nums)
-    any(contains_nots.(terms)) && error("Something went wrong in the simplification process. The terms still include nots.\n $terms")
-    transmission_function(irfs, irfs_ortho) = begin
-        terms = Vector{eltype(irfs)}(undef, length(variable_nums))
-        for (i, term) in enumerate(variable_nums)
-            if isnothing(term[1]) && length(term) == 1
-                terms[i] = irfs[to, from]
-                continue
-            end
+    to_transmission_irfs(irfs::AbstractArray{T, 3})
 
-            terms[i] = zero(eltype(irfs))
-            terms[i] += irfs[term[1], from]
-            for i = 1:(lastindex(term)-1)
-                terms[i] *= irfs_ortho[term[i+1], term[i]] / irfs_ortho[term[i], term[i]]
-            end
-            terms[i] *= irfs_ortho[to, term[end]] / irfs_ortho[term[end], term[end]]
-        end
-        terms' * multiplier, terms
-    end
-    
-    return transmission_function
+Transform a standard three dimensional IRF array into a IRF matrix. The 
+
+## Arguments
+
+- `irfs::AbstractArray{T, 3}`: IRF Array of dimension n_variabels × n_shocks ×
+  n_horizons with the first horizons corresponding to horizon 0. 
+
+## Returns
+
+- `Matrix{T}` of dimension (n_variables * n_horizons) × (n_variables *
+  n_horizons). This is the same as what would be obtained via
+  ``(I-B)^{-1}\\mathbb{Q}`` using the notation of $WEGNER. 
+"""
+function to_transmission_irfs(irfs::AbstractArray{T, 3}) where {T}
+    k = size(irfs, 1)
+    max_horizon = size(irfs, 3) - 1
+    irfs = reduce(vcat, eachslice(irfs; dims = 3))
+    irfs = reduce(hcat, [vcat(zeros(k*h, k), irfs[1:(end-k*h), :]) for h = 0:max_horizon])
+    return irfs
 end
-function create_transmission_function(from::Int, condition::SymbolicUtils.BasicSymbolic{Bool})
-    terms, multiplier, _, variable_nums = helper_Q(condition)
-    any(contains_nots.(terms)) && error("Something went wrong in the simplification process. The terms still include nots.\n $terms")
-    transmission_function(irfs, irfs_ortho) = begin
-        terms = zeros(eltype(irfs), size(irfs, 1), length(variable_nums))
-        for (i, term) in enumerate(variable_nums)
-            if isnothing(term[1]) && length(term) == 1
-                terms[:, i] .= irfs[:, from]
-                continue
-            end
 
-            # terms[:, i] .= zero(eltype(irfs))
-            terms[:, i] .+= irfs[term[1], from]
-            for j = 1:(lastindex(term)-1)
-                terms[:, i] .*= irfs_ortho[term[j+1], term[j]] ./ irfs_ortho[term[j], term[j]]
-            end
-            terms[:, i] .*= irfs_ortho[:, term[end]] ./ irfs_ortho[term[end], term[end]]
-        end
-        terms * multiplier
-    end
-    
-    return transmission_function
+"""
+  transmission(from::Int, arr1::AbstractMatrix{T}, arr2::AbstractMatrix{T}, q::Q; method = :BQbb) where {T}
+
+
+Given a transmission condition `q`, calculate the transmission effect using the
+either the `:BQbb` method (the default), or the `:irfs` method. 
+
+## Arguments
+
+- `from::Int`: Shock number. 
+- `arr1::AbstractMatrix{T}`. In case of `:BQbb` this must be `B`, in case of
+  `:irfs` this must be `irfs`. See the documentation for the specific methods
+  for `transmission(..., ::Type{Val{:BQbb}})` and `transmission(...,::Type{Val{:irfs}})`. 
+- `arr2::AbstractMatrix{T}`: In case of `:BQbb` this must be `Qbb`, in case of
+  `:irfs` this must be `irfs_ortho`. See the documentation for the specific methods
+  for `transmission(..., ::Type{Val{:BQbb}})` and `transmission(...,::Type{Val{:irfs}})`.  
+- `q::Q`: A transmission condition. See also [`Q`](@ref).
+
+## Keyword Arguments
+
+- `method::Symbol`: Either `:BQbb` in which case the transmission effect will be
+  calculated using the second method in $WEGNER, or `:irfs` in which case the
+  transmission effect is calculated using the first method in $WEGNER. 
+
+## Returns 
+
+- Returns a `Vector{T}` with entry `i` corresponding to the transmission effect
+  on variable ``x_i``. If ``x_k`` is the variable in the transmission condition
+  with the highest subscript, then all entries in the returned vector with index
+  less thatn `k` are `NaN` since interpretation of those results is nonsensical. 
+
+## Examples
+
+```julia
+k = 6
+h = 3
+s = "(x1 | x2) & !x3"
+cond = make_condition(s)
+
+B = randn(k*(h+1), k*(h+1))
+Qbb = randn(k*(h+1), k*(h+1))
+
+effect = transmission(1, B, Qbb, cond; method = :BQbb)
+effect = transmission(1, B, Qbb, cond)  # same as above; default is :BQbb
+
+irfs = randn(k, k, h+1)
+irfs_ortho = randn(k, k, h+1)
+
+irfs = to_transmission_irfs(irfs)
+irfs_ortho = to_transmission_irfs(irfs_ortho)
+
+effect = transmission(1, irfs, irfs_ortho, cond; method = :irfs)
+```
+"""
+function transmission(from::Int, arr1::AbstractMatrix{T}, arr2::AbstractMatrix{T}, q::Q; method = :BQbb) where {T}
+  return transmission(from, arr1, arr2, q, Val{method})
 end

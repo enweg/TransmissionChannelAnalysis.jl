@@ -1,7 +1,8 @@
 """
-    make_condition(string::String)
+    make_condition(s::String)
 
-Given a `string`, make a `SymbolicUtils.jl` Boolean expression. 
+Given a `s::String`, form a transmission condition of the form Q(b) where b is a
+Boolean statement. 
 
 Transmission mechanisms are described using Boolean statements involving the 
 variables in the system. Each variable starts with `x` followed by a number.
@@ -13,38 +14,33 @@ statement.
 
 ## Arguments
 
-- `string::String`: A Boolean statement given as a string. Variables must start
+- `s::String`: A Boolean statement given as a string. Variables must start
   with `x` for them to be valid variables. 
 
 ## Returns 
 
-- Returns a `SymbolicUtils.jl` Boolean expression that can be used in
-  [`create_transmission_function`](@ref). 
+- Returns a transmission condition. See also [`Q`](@ref).
 
 ## Examples
 
 ```julia
 s = "x2 & !x3"
 cond = make_condition(s)
-tf = create_transmission_function(1, cond)
-irfs = randn(3, 3)
-irfs_ortho = randn(3, 3)
-tf(irfs, irfs_ortho)
 ```
 
 ## Notes
 
 - Ensure that variables in the input string are correctly formatted as `x`
   followed by a number. 
-- The resulting Boolean expression can be used in [`create_transmission_function`](@ref)
-  to create a function that calculates the transmission effect. 
+- The resulting transmission condition can be used in [`transmission`](@ref) to
+  calculate the transmission effect.
 
 """
-function make_condition(string::String)
-    variables = [Symbol(m.match) for m in eachmatch(r"x\d+", string)]
-    for v in variables
-        eval(Meta.parse("$v = SymbolicUtils.Sym{Bool}(:$v)"))
-        # eval(:($v = SymbolicUtils.Sym{Bool}((:)($v))))
-    end
-    return eval(Meta.parse(string))
+function make_condition(s::String)
+  vars = collect([m.match for m in eachmatch(r"(x\d+)", s)])
+  for v in unique(vars)
+      sv = Symbol(string(v))
+      eval(:($sv = Q(string($v))))
+  end
+  return eval(Meta.parse(s))
 end

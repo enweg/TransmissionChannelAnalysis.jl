@@ -2,7 +2,7 @@
 
     make_structural_B(A0_ortho::AbstractMatrix, Aplus_ortho::AbstractMatrix, p::Int, max_horizon::Int)
 
-Create the `B` matrix in the structural representation in Wegner et al (2024). 
+Create the `B` matrix in the structural representation in $WEGNER. 
 
 Given a SVAR(p) in the form of 
 ```math
@@ -59,7 +59,7 @@ end
 
     make_structural_B(A0_ortho::AbstractMatrix, Aplus_ortho::AbstractMatrix, p::Int, max_horizon::Int)
 
-Create the `B` matrix in the structural representation in Wegner et al (2024). 
+Create the `B` matrix in the structural representation in $WEGNER. 
 
 Given a SVAR(p) in the form of 
 ```math
@@ -113,7 +113,7 @@ end
 
     make_structural_B(A0_ortho::AbstractMatrix, Aplus_ortho::AbstractMatrix, p::Int, max_horizon::Int)
 
-Create the `B` matrix in the structural representation in Wegner et al (2024). 
+Create the `B` matrix in the structural representation in $WEGNER. 
 
 Given a SVAR(p) in the form of 
 ```math

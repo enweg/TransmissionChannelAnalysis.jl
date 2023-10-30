@@ -1,265 +1,304 @@
+import Base.&
+import Base.|
+import Base.!
+import Base.string
+import Base.show
+
 """
-    collect_and_terms(expr::Union{SymbolicUtils.BasicSymbolic{Bool}, Vector{SymbolicUtils.BasicSymbolic{Bool}}}; rev=true)
+    Q(s::String)
+    Q(s::String, m::Number)
+    Q(s::Vector{String})
+    Q(s::Vector{String}, m::Vector{Number})
+    Q(i::Int)
 
-Collect unique AND terms from a boolean expression or a vector of boolean expressions.
+Represents a transmission condition. 
 
-This function extracts unique AND terms from the input boolean expression(s) and 
-returns them as a vector of `SymbolicUtils.BasicSymbolic{Bool}`. The input `expr` 
-can be either a single boolean expression or a vector of boolean expressions.
+We denote with Q(b), where b is a Boolean statement, a transmission question. 
+
+**Important**: Each string in `s:` should be a Boolean statement involving
+variables `x`` followed by a number, i.e. `x1`, `x2`, etc. Additionally, each
+Boolean statement should contain only AND (&) and NOT (!) statements. 
+
+**Important**: Users should only use the `Q(i::Int)` constructor. All other
+constructors are for internal use only. Misuse of the other constructors easily
+leads to mistakes. 
+
+## Fields
+
+- `vars::Vector{String}`: Contains the variables. These will be Boolean
+  statements containing only AND and NOT.
+- `multiplier::Vector{Number}`: Multiplier in front of Q(b). 
 
 ## Arguments
 
-- `expr`: 
-  A single boolean expression or a vector of boolean expressions from which AND 
-  terms will be collected.
-- `rev::Bool=true`: (Optional) If `true`, the resulting AND terms are sorted in 
-  descending order based on their string representation. If `false`, the sorting 
-  is in ascending order.
+- `s::Union{String, Vector{String}}`: String representation of transmission
+  condition. 
+- `m::Union{Number, Vector{Number}}`: Multipliers for transmission conditions. 
+- `i::Int`: Variable number.
 
-## Returns
-
-- Returns a vector of `SymbolicUtils.BasicSymbolic{Bool}` containing unique AND terms 
-  extracted from the input expression(s).
-
-## Examples
+## Usage
 
 ```julia
-s = "x2 & x3 & !x2 & x5"
-cond = make_condition(s)
-and_terms = TransmissionMechanisms.collect_and_terms(cond)
-````
 
-"""
-function collect_and_terms(expr; rev = true)
-    stack = Any[expr]
-    ands = []
-    while length(stack) > 0
-        ex = pop!(stack)
-        out = r_ands(ex)
-        if isequal(out, ex)
-            push!(ands, out)
-        else
-            push!(stack, out.x)
-            for y in out.y
-                push!(stack, y)
-            end
-        end
-    end
-    ands_str = string.(ands)
-    ps = sortperm(ands_str; rev = rev)
-    return unique(ands[ps])
-end
-function collect_and_terms(expr::AbstractVector; rev = true)
-    out = [collect_and_terms(ex) for ex in expr]
-    out = vcat(out...)
-    out_str = string.(out)
-    ps = sortperm(out_str; rev = rev)
-    return out[ps]
-end
+# Defining all variables in one go
+x = [Q("x\$i") for i = 1:10]
+q = (x[1] | x[2]) & !x[3]
 
+# Alternatively variables can be defined separaterly
+x1 = Q("x1")
+x2 = Q("x2")
+x3 = Q("x3")
+q = (x1 | x2) & !x3
 
-"""
-    is_not_valid_variable_name(sym::SymbolicUtils.BasicSymbolic{Bool})
+# The following are also valid
+q = Q("x1 & !x3", 1)
+q = Q(["x1", "x2", "x1 & x2"], [1, 1, -1])
 
-Check if a given symbol is a valid variable name in the context of transmission
-mechanisms.
-
-This function validates whether the provided symbol `sym` is a valid variable
-name for use in transmission mechanisms and in
-[`create_transmission_function`](@ref). In the context of transmission
-mechanisms, valid variable names are of the form 'x' followed by one or more
-digits, or the symbol 'T' representing `true`.
-
-## Arguments
-
-- `sym::SymbolicUtils.BasicSymbolic{Bool}`: Symbol to be checked for validity as
-  a variable name in transmission mechanisms.
-
-## Returns
-
-- Returns `true` if the input symbol is **not** a valid variable name, and `false`
-  otherwise.
-
-## Examples
-
-```julia
-@syms x1::Bool T::Bool y::Bool
-TransmissionMechanisms.is_not_valid_variable_name(x1)   # Returns false (valid variable name)
-TransmissionMechanisms.is_not_valid_variable_name(y)    # Returns true (invalid variable name)
-TransmissionMechanisms.is_not_valid_variable_name(T)    # Returns false (valid variable name)
-
-"""
-function is_not_valid_variable_name(sym::SymbolicUtils.BasicSymbolic{Bool})
-    sym_str = string(sym)
-    if !isnothing(match(r"^x\d+$|^T$", sym_str))
-        return false
-    end
-    return true
-end
-
-
-"""
-    helper_sym_to_num(sym_vec::Union{SymbolicUtils.BasicSymbolic{Bool}, Vector{SymbolicUtils.BasicSymbolic{Bool}}})
-
-Convert symbolic variables to numerical indices.
-
-This function takes a single boolean symbolic variable or an array of boolean
-symbolic variables `sym_vec` and converts them into numerical indices. Each
-index corresponds to the variable index in the structural transmission model and
-thus to an index in the IRF matrix. Valid variable names should start with 'x'
-followed by a number or be the symbol 'T'. If invalid variable names are
-encountered, an error is raised.
-
-## Arguments
-
-- `sym_vec::Union{Any, Vector{Any}}`: 
-  A single boolean symbolic variable or an array of boolean symbolic variables 
-  representing variables to be converted to numerical indices.
-
-## Returns
-
-- Returns a sorted vector of numerical indices corresponding to the input symbols. 
-  If a symbol is 'T', it is represented as `nothing` in the output vector.
-
-## Examples
-
-```julia
-@syms x1::Bool x2::Bool x3::Bool T::Bool y::Bool
-TransmissionMechanisms.helper_sym_to_num(x2)          # Returns [2]
-TransmissionMechanisms.helper_sym_to_num(T)          # Returns [nothing]
-TransmissionMechanisms.helper_sym_to_num([x1, x3]) # Returns [1, 3]
-TransmissionMechanisms.helper_sym_to_num(y)            # Error: Variable names should start with 'x' followed by a number.
-
-"""
-function helper_sym_to_num(sym_vec::Union{Any, Vector{Any}})
-    if !isa(sym_vec, AbstractVector)
-        sym_vec = [sym_vec]
-    end
-    any(is_not_valid_variable_name.(sym_vec)) && error("Variable names should start with 'x' followed by a number. See the paper for details.")
-    rx = r"[0-9]*$|T$"
-    out = [match(rx, string(sym)).match for sym in sym_vec]
-    out = [o == "T" ? nothing : parse(Int, o) for o in out]
-    return sort(out)
-end
-
-"""
-    get_terms(condition::SymbolicUtils.BasicSymbolic{Bool})
-
-Simplify a Boolean condition into a sum of only conjunctions. 
-
-Given a valid Boolean condition in the context of transmission mechanisms, the
-condition is recursively simplified until the result only consists of additive
-terms with each remaining condition being purely a conjunction. For example, The
-condition `x2 & !x3` corresponds to the transmission statement `Q(x2 & !x3)`
-which is simplified to `Q(x2) - Q(x2 & x3)`. The function will then return
-`[Q(x2), -Q(x2 & x3)]`. Each term can then be easily evaluated using IRFs.  
-
-## Arguments
-
-- `condition::SymbolicUtils.BasicSymbolic{Bool}`: A symbolic boolean condition.
-  Can be created using [`make_condition`](@ref). Valid variable names are `x`
-  followed by a number, or `T` respresenting true. All transmission paths must
-  satisfy this boolean statement. 
-
-## Returns 
-
-- Returns a vector of terms, each of which consists of a conjunction. 
-
-## Examples
-
-```julia
-s = "x2 & !x3"
-cond = make_condition(s)
-term = get_terms(cond)  # [Q(x2), -Q(x2 & x3)]
+# The following is NOT valid but does not yet throw an error or warning
+q = Q("x1 | x2")  # DO NOT DO THIS!
 ```
-
 """
-function get_terms(condition::SymbolicUtils.BasicSymbolic{Bool})
-    ex = Q(condition)
-    stack = Any[ex]
-    terms = Any[]
-    while length(stack) > 0
-        ex = pop!(stack)
-        simplified = ch(ex)
-        if isequal(ex, simplified)
-            push!(terms, ex)
-        else
-            simplified_terms = collect_Qs(simplified)
-            if isnothing(simplified_terms)
-                push!(stack, simplified)
-                continue
-            end
-            if !isa(simplified_terms, AbstractVector)
-                simplified_terms = [simplified_terms]
-            end
-            for st in simplified_terms
-                push!(stack, st)
-            end
-        end
-    end
-    return terms
+struct Q
+    vars::Vector{String}
+    multiplier::Vector{Number}
 end
-
-
-"""
-    helper_Q(condition::SymbolicUtils.BasicSymbolic{Bool})
-
-Simplifies the valid Boolean `condition` in the context of transmission
-mechanisms and returns all necessary information to evaluate the transmission
-effect using information in Impulse Response Functions (IRFs). 
-
-## Arguments 
-
-- `condition::SymbolicUtils.BasicSymbolic{Bool}`: A valid symbolic Boolean
-  condition. Can be created using [`make_condition`](@ref). 
-  
-## Returns 
-
-1. A vector containing all the additive terms in the simplified representation.
-   Each term only involves conjunctions and can thus be calculated using
-   information in IRFs. 
-2. A vector of multipliers applied to each term. 
-3. A vector of variables involved in the transmission query.
-4. A vector of vectors. Each inner vector corresponds to a term and provides the
-   variable numbers involved in the term. These, together with the multipliers,
-   can be used to calculate the transmission effect. 
+# TODO: Throw error if string is not valid.
+Q(s::String) = Q([s], [1.0])
+Q(s::String, m::Number) = Q([s], [m])
+Q(s::Vector{String}) = Q(s, ones(size(s)))
+Q(i::Int) = Q("x$i")
 
 """
-function helper_Q(condition::SymbolicUtils.BasicSymbolic{Bool})
-    terms = get_terms(condition)
-    term = (+)(terms...)
-    terms = collect_Qs(term)
-    multiplier = collect_multiplier.(terms)
-    if !isa(multiplier, AbstractVector)
-        multiplier = [multiplier]
-    end
-    multiplier = [isnothing(m) ? 1 : m for m in multiplier]
-    variables = collect_and_terms.(terms; rev = false)
-    variable_nums = helper_sym_to_num.(variables)
-    return terms, multiplier, variables, variable_nums
-end
+    collect_terms(q::Q)
 
-
-"""
-    contains_nots(term::SymbolicUtils.BasicSymbolic{Bool})
-
-Check whether a `term` still contains a NOT statement. 
-
-To be able to calculate transmission effects using IRFs, Boolean conditions need
-to be simplified to a state in which they only involve ANDs in all terms. Thus,
-this function checks whether something went wrong in the simplification process. 
+Collect all terms Q(b) for which the Boolean statement b is the same and sums
+their multiplier. The result is a transmission condition for which each term
+only appears ones, but with multipliers possibly different from plus-minus one. 
 
 ## Arguments
 
-- `term::SymbolicUtils.BasicSymbolic{Bool}`: A `term` as returned by
-  [`helper_Q`](@ref) or [`get_terms`](@ref). 
+- `q::Q`: A transmission condition. See also [`Q`](@ref)
 
 ## Returns
 
-- Returns `true` if the `term` includes any NOT and `false` otherwise. 
+- Another transmission condition of type `Q`. 
+
+## Example
+
+```julia
+q = Q(["x1", "x1"], [1, 1])  
+collect_terms(q)
+# output: Q("x1", 2)
+q = Q(["x1", "", "x1"], [1, 1, -1])  
+collect_terms(q)
+# output: Q("", 1)
+```
+"""
+function collect_terms(q::Q)
+    terms = Dict()
+    for (v, m) in zip(q.vars, q.multiplier)
+        m += get(terms, v, 0)
+        terms[v] = m
+    end
+    vars = string.(keys(terms))
+    mult = [terms[v] for v in vars]
+    non_zero_mult = findall(!=(0), mult)
+    vars = vars[non_zero_mult]
+    mult = mult[non_zero_mult]
+    return Q(vars, mult)
+end
 
 """
-function contains_nots(term::SymbolicUtils.BasicSymbolic{T}) where T
-    term_string = string(term)
-    return contains(term_string, "!")
+    string_and(s1::String, s2::String)
+
+Combine two strings using "&".
+"""
+function string_and(s1::String, s2::String)
+    s2 == "" && return s1
+    s1 == "" && return s2
+    s = join([s1, s2], " & ")
+    xs = sort(unique([m.match for m in eachmatch(r"(!{0,1}x\d+)", s)]); rev = true)
+    s = join(xs, " & ")
+    return s
+end
+
+"""
+    check_contradiction(var_and::Vector{Int}, var_not::Vector{Int})
+    check_contradiction(var_and::Vector{Vector{Int}}, var_not::Vector{Vector{Int}})
+    
+Check whether there is a contradiction of the form x1 & !x1. 
+
+## Arguments
+
+- `var_and::Union{Vector{Int}, Vector{Vector{Int}}}`: AND variable numbers
+  obtained from [`get_varnums_and_multiplier`](@ref). 
+- `var_not::Union{Vector{Int}, Vector{Vector{Int}}}`: NOT variable numbers
+  obtained from [`get_varnums_and_multiplier`](@ref)
+
+## Returns
+
+1. `Bool` indicating whether there are any contradictions. 
+2. `Vector{Bool}` indicating which elements yielded a contradiction.
+
+## Notes
+
+- This is used in [`remove_contradiction`](@ref) to remove contradicting terms.
+  This speeds up simplification of terms, since the total number of terms can
+  often be reduced. 
+
+"""
+function check_contradiction(var_and::Vector{Int}, var_not::Vector{Int})
+    contradictions = [va in var_not for va in var_and]
+    return any(contradictions), contradictions
+end
+function check_contradiction(var_and::Vector{Vector{Int}}, var_not::Vector{Vector{Int}})
+    contradictions = [check_contradiction(va, vn)[1] for (va, vn) in zip(var_and, var_not)]
+    return any(contradictions), contradictions
+end
+
+REMOVE_CONTRADICTIONS::Bool = true
+"""
+    remove_contradictions(q::Q)
+
+Remove contradicting terms. 
+
+A terms is deemed contradicting if it includes some "xi & !xi". This would
+result in the entire Boolean statement to be false, and thus in the effect of
+this terms to be zero. 
+
+## Arguments
+
+- `q::Q`: A transmission condition. See also [`Q`](@ref) and
+  [`make_condition`](@ref). 
+
+## Returns
+
+- If `TransmissionMechanisms.REMOVE_CONTRADICTIONS == false`, then `q` will
+  simply be returned again. 
+- If `TransmissionMechanisms.REMOVE_CONTRADICTIONS == false`, then 
+    1. If all terms are contradicting, the `Q("", 0)` will be retuned, which has
+       a transmission effect of zero. 
+    2. If some terms are non-contradicting, then a transmission condition
+       consisting of only the non-contradicting terms will be returned. 
+
+## Examples
+
+```julia
+TransmissionMechanisms.REMOVE_CONTRADICTIONS = true
+q = TransmissionMechanisms.Q("x1", 1)
+remove_contradictions(q)  # will return q again since no contradictions exist
+
+q = TransmissionMechanisms.Q("x1 & !x1", 1)
+remove_contradictions(q)  # Will return Q("", 0)
+
+q = TransmissionMechanisms.Q(["x1 & !x1", "x1 & x2"], [1, 1])
+remove_contradictions(q)  # Will return Q("x1 & x2", 1)
+```
+"""
+function remove_contradictions(q::Q)
+    global REMOVE_CONTRADICTIONS
+    !REMOVE_CONTRADICTIONS && return q
+
+    var_and, var_not, _ = get_varnums_and_multiplier(q)
+    has_contradiction, contradictions =  check_contradiction(var_and, var_not)
+    if has_contradiction
+        all(contradictions) && return Q("", 0)  # This will later result in a zero
+        return Q(q.vars[(!).(contradictions)], q.multiplier[(!).(contradictions)])
+    end
+    return q
+end
+
+
+"""
+    Base.&(q1::Q, q2::Q)
+
+Combine two transmission conditions using AND. 
+"""
+function (&)(q1::Q, q2::Q)
+    if length(q1.vars) == 1
+        q = collect_terms(Q([string_and(q2.vars[i], q1.vars[1]) for i = 1:lastindex(q2.vars)], q1.multiplier[1]*q2.multiplier))
+        return remove_contradictions(q)
+    elseif length(q2.vars) == 1
+        q = collect_terms(Q([string_and(q1.vars[i], q2.vars[1]) for i = 1:lastindex(q1.vars)], q2.multiplier[1]*q1.multiplier))
+        return remove_contradictions(q)
+    else
+        qs = [Q(q1.vars[i], q1.multiplier[i]) & q2 for i = 1:lastindex(q1.vars)]
+        vars = reduce(vcat, [q.vars for q in qs])
+        mults = reduce(vcat, [q.multiplier for q in qs])
+        return collect_terms(Q(vars, mults))
+    end
+end
+
+"""
+    Base.|(q1::Q, q2::Q)
+
+Combine two transmission conditions using OR. 
+"""
+function (|)(q1::Q, q2::Q)
+    vars = q1.vars
+    vars = vcat(vars, q2.vars)
+    q = q1 & q2
+    vars = vcat(vars, q.vars)
+    mults = vcat(q1.multiplier, q2.multiplier)
+    mults = vcat(mults, -1 * q.multiplier)
+    return collect_terms(Q(vars, mults))
+end
+
+"""
+    Base.!(q1::Q)
+
+Return NOT the transmission condition if the condition involves more than one
+variables. If the condition only involves one variables, then "!x1" is returned
+where "1" is replaced by the respective variable number. 
+
+Note: The decision not to simplify terms of the form "!x1" was made because
+calculations usign the second calculation method in $WEGNER are
+faster than having to simplify "!x1" type of terms and using the first
+calculation method. 
+"""
+function (!)(q1::Q)
+    if length(q1.vars) == 1 && count(r"x\d+", q1.vars[1]) == 1
+        vars = "!$(q1.vars[1])"
+        return Q(vars, q1.multiplier[1])
+    end
+    vars = vcat([""], q1.vars)
+    mults = vcat([1.0], -1 * q1.multiplier)
+    return collect_terms(Q(vars, mults))
+end
+
+"""
+    Base.string(q::Q)
+
+Obtain a string representation of a transmission condition.
+"""
+function Base.string(q::Q)
+    s = []
+    for (m, v) in zip(q.multiplier, q.vars)
+        ms = string(m)
+        if m % 1 == 0
+            ms = string.(floor(Int, m))
+        end
+        if m == -1
+            ms = "-"
+        end
+        if m == 1
+            ms = ""
+        end
+        
+        vs = string(v)
+        if vs == ""
+            vs = "T"
+        end
+            
+        push!(s, "$(ms)Q($(vs))")
+    end
+    return s
+end
+function  Base.show(io::IO, ::MIME"text/plain", q::Q)
+    if haskey(ENV, "SHOW_Q_AS_SUM") && ENV["SHOW_Q_AS_SUM"] == "true"
+        s = join(string(q), " + ")
+        return write(io, s)
+    end
+    s = join(string(q), "\n")
+    return write(io, s)
 end

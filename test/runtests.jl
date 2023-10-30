@@ -1,6 +1,7 @@
 using TransmissionMechanisms
 using Test
 using Serialization
+using JSON
 using LinearAlgebra
 
 @testset "TransmissionMechanisms.jl REMOVE_CONTRADICTIONS = false" begin

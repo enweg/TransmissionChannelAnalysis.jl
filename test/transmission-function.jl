@@ -154,13 +154,19 @@ function test7(irfs, irfs_ortho, B, Qbb)
     return hcat(manual_1, manual_2, effect, effect_irfs)
 end
 
+function read_json_to_matrix(file_name)
+    f = read(file_name, String)
+    mat = reduce(hcat, JSON.parse(f))
+    return Float64.(mat)
+end
+
 @testset "create_transmission_function" begin
 
-    irfs = deserialize("./simulated-svar-k3-p1/irfs.jls")
-    irfs_ortho = deserialize("./simulated-svar-k3-p1/irfs_ortho.jls")
+    irfs = read_json_to_matrix("./simulated-svar-k3-p1/irfs.json")
+    irfs_ortho = read_json_to_matrix("./simulated-svar-k3-p1/irfs_ortho.json")
 
-    B = deserialize("./simulated-svar-k3-p1/B.jls")
-    Qbb = deserialize("./simulated-svar-k3-p1/Qbb.jls")
+    B = read_json_to_matrix("./simulated-svar-k3-p1/B.json")
+    Qbb = read_json_to_matrix("./simulated-svar-k3-p1/Qbb.json")
 
     mat = test1(irfs, irfs_ortho, B, Qbb)
     mat = mat[3:end, :]

@@ -142,7 +142,7 @@ Check whether there is a contradiction of the form x1 & !x1.
 
 ## Notes
 
-- This is used in [`remove_contradiction`](@ref) to remove contradicting terms.
+- This is used in [`remove_contradictions`](@ref) to remove contradicting terms.
   This speeds up simplification of terms, since the total number of terms can
   often be reduced. 
 
@@ -156,7 +156,7 @@ function check_contradiction(var_and::Vector{Vector{Int}}, var_not::Vector{Vecto
     return any(contradictions), contradictions
 end
 
-REMOVE_CONTRADICTIONS::Bool = true
+REMOVE_CONTRADICTIONS = true
 """
     remove_contradictions(q::Q)
 

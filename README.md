@@ -99,8 +99,7 @@ paper. This consistency cannot be guaranteed if one is not starting with these
 
 `Q` follows three rules: 
 
-1. Assume $Q[b] = \sum_{i = 1}^{N_1} m_i Q[b_i]$ and $Q[b^*] =\sum_{j=1}^{N_2}m^*_jQ[b^*_j]$. 
-   Then $Q[b \land b^*] = \sum_{i=1}^{N_1}\sum_{j=1}^{N_2}m_im^*_jQ[b_i \land b^*_j]$
+1. Assume $Q[b] = \sum_{i=1}^{N_1}m_i Q[b_i]$ and $Q[b^*] =\sum_{j=1}^{N_2}m^*_jQ[b^*_j]$. Then $Q[b \land b^*] = \sum_{i=1}^{N_1}\sum_{j=1}^{N_2}m_im^*_jQ[b_i \land b^*_j]$
 2. $Q[b \lor b^*] = Q[b] + Q[b^*] - Q[b \land b^*]$ 
 3. $Q[b \land \neg b^*] = Q[b] - Q[b \land b^*]$
 

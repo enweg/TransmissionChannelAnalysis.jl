@@ -53,7 +53,7 @@ function calculate_Q_and_only(from::Int,
     end
     effect .*= irfs_ortho[:, vars[end]] ./ irfs_ortho[vars[end], vars[end]]
 
-    effect[1:maximum(vars)] .= NaN
+    # effect[1:maximum(vars)] .= NaN
     return effect
 end
 

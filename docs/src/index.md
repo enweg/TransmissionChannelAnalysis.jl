@@ -1,14 +1,14 @@
 ```@meta
-CurrentModule = TransmissionMechanisms
+CurrentModule = TransmissionChannelAnalysis
 ```
 
-# TransmissionMechanisms
+# TransmissionChannelAnalysis
 
-Documentation for [TransmissionMechanisms](https://github.com/enweg/TransmissionMechanisms.jl).
+Documentation for [TransmissionChannelAnalysis](https://github.com/enweg/TransmissionChannelAnalysis.jl).
 
 ```@index
 ```
 
 ```@autodocs
-Modules = [TransmissionMechanisms]
+Modules = [TransmissionChannelAnalysis]
 ```

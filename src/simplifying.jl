@@ -173,9 +173,9 @@ this terms to be zero.
 
 ## Returns
 
-- If `TransmissionMechanisms.REMOVE_CONTRADICTIONS == false`, then `q` will
+- If `TransmissionChannelAnalysis.REMOVE_CONTRADICTIONS == false`, then `q` will
   simply be returned again. 
-- If `TransmissionMechanisms.REMOVE_CONTRADICTIONS == false`, then 
+- If `TransmissionChannelAnalysis.REMOVE_CONTRADICTIONS == false`, then 
     1. If all terms are contradicting, the `Q("", 0)` will be retuned, which has
        a transmission effect of zero. 
     2. If some terms are non-contradicting, then a transmission condition
@@ -184,14 +184,14 @@ this terms to be zero.
 ## Examples
 
 ```julia
-TransmissionMechanisms.REMOVE_CONTRADICTIONS = true
-q = TransmissionMechanisms.Q("x1", 1)
+TransmissionChannelAnalysis.REMOVE_CONTRADICTIONS = true
+q = TransmissionChannelAnalysis.Q("x1", 1)
 remove_contradictions(q)  # will return q again since no contradictions exist
 
-q = TransmissionMechanisms.Q("x1 & !x1", 1)
+q = TransmissionChannelAnalysis.Q("x1 & !x1", 1)
 remove_contradictions(q)  # Will return Q("", 0)
 
-q = TransmissionMechanisms.Q(["x1 & !x1", "x1 & x2"], [1, 1])
+q = TransmissionChannelAnalysis.Q(["x1 & !x1", "x1 & x2"], [1, 1])
 remove_contradictions(q)  # Will return Q("x1 & x2", 1)
 ```
 """

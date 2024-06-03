@@ -1,9 +1,9 @@
-# TransmissionMechanisms.jl
+# TransmissionChannelAnalysis.jl
 
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://enweg.github.io/TransmissionMechanisms.jl/stable/)
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://enweg.github.io/TransmissionMechanisms.jl/dev/)
-[![Build Status](https://github.com/enweg/TransmissionMechanisms.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/enweg/TransmissionMechanisms.jl/actions/workflows/CI.yml?query=branch%3Amain)
-[![Coverage](https://codecov.io/gh/enweg/TransmissionMechanisms.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/enweg/TransmissionMechanisms.jl)
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://enweg.github.io/TransmissionChannelAnalysis.jl/stable/)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://enweg.github.io/TransmissionChannelAnalysis.jl/dev/)
+[![Build Status](https://github.com/enweg/TransmissionChannelAnalysis.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/enweg/TransmissionChannelAnalysis.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![Coverage](https://codecov.io/gh/enweg/TransmissionChannelAnalysis.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/enweg/TransmissionChannelAnalysis.jl)
 
 
 Calculate the transmission effect along a collection of paths in an SVAR. See
@@ -78,7 +78,7 @@ of those effects is nonsensical.
 
 ## Internals
 
-The internals of `TransmissionMechanisms.jl` all revolve around the type `Q`
+The internals of `TransmissionChannelAnalysis.jl` all revolve around the type `Q`
 which represents a transmission condition or query. It has two fields. The `vars`
 field is a `Vector{String}` field with each element corresponding to a term in a
 transmission condition. The second field is the `multiplier` field which is a

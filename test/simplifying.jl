@@ -1,9 +1,9 @@
 
 @testset "Q constructors" begin
-    q1 = TransmissionMechanisms.Q("x1")
-    q2 = TransmissionMechanisms.Q("x2", -1.5)
-    q3 = TransmissionMechanisms.Q(["x1", "x2"])
-    q4 = TransmissionMechanisms.Q(["x1", "x2"], [-1, 2])
+    q1 = TransmissionChannelAnalysis.Q("x1")
+    q2 = TransmissionChannelAnalysis.Q("x2", -1.5)
+    q3 = TransmissionChannelAnalysis.Q(["x1", "x2"])
+    q4 = TransmissionChannelAnalysis.Q(["x1", "x2"], [-1, 2])
 
     @test q1.vars[1] == "x1"
     @test q2.vars[1] == "x2"
@@ -13,56 +13,56 @@
 end
 
 @testset "collect_terms" begin
-    q = TransmissionMechanisms.Q(["x1", "x1"], [1, 1])  
-    q = TransmissionMechanisms.collect_terms(q)
+    q = TransmissionChannelAnalysis.Q(["x1", "x1"], [1, 1])  
+    q = TransmissionChannelAnalysis.collect_terms(q)
     @test length(q.vars) == 1
     @test q.vars[1] == "x1"
     @test q.multiplier[1] == 2
 
-    q = TransmissionMechanisms.Q(["x1", "", "x1"], [1, 1, -1])  
-    q = TransmissionMechanisms.collect_terms(q)
+    q = TransmissionChannelAnalysis.Q(["x1", "", "x1"], [1, 1, -1])  
+    q = TransmissionChannelAnalysis.collect_terms(q)
     @test length(q.vars) == 1
     @test q.vars[1] == ""
     @test q.multiplier[1] == 1
 end
 
 @testset "string_and" begin
-    s = TransmissionMechanisms.string_and("", "x1")
+    s = TransmissionChannelAnalysis.string_and("", "x1")
     @test s == "x1"
 
-    s = TransmissionMechanisms.string_and("x1", "x1")
+    s = TransmissionChannelAnalysis.string_and("x1", "x1")
     @test s == "x1"
 
-    s = TransmissionMechanisms.string_and("x1 & x2", "x1")
+    s = TransmissionChannelAnalysis.string_and("x1 & x2", "x1")
     @test s == "x2 & x1"
 
-    s = TransmissionMechanisms.string_and("!x1 & x2", "x1")
+    s = TransmissionChannelAnalysis.string_and("!x1 & x2", "x1")
     @test s == "x2 & x1 & !x1"
 
-    s = TransmissionMechanisms.string_and("x1", "x2")
+    s = TransmissionChannelAnalysis.string_and("x1", "x2")
     @test s == "x2 & x1"
 end
 
 @testset "AND" begin
-    x = [TransmissionMechanisms.Q("x$i") for i = 1:5]
+    x = [TransmissionChannelAnalysis.Q("x$i") for i = 1:5]
 
     q = x[1] & x[2]
     @test q.vars[1] == "x2 & x1"
 
-    q = x[1] & TransmissionMechanisms.Q(["x1", "x2"], [1, 1])
+    q = x[1] & TransmissionChannelAnalysis.Q(["x1", "x2"], [1, 1])
     @test q.vars[1] == "x1"
     @test q.vars[2] == "x2 & x1"
     @test all(q.multiplier .== [1, 1])
 
 
-    q = x[1] & TransmissionMechanisms.Q(["x1", "x2"], [1, -2])
+    q = x[1] & TransmissionChannelAnalysis.Q(["x1", "x2"], [1, -2])
     @test q.vars[1] == "x1"
     @test q.vars[2] == "x2 & x1"
     @test all(q.multiplier .== [1, -2])
 end
 
 @testset "OR" begin
-    x = [TransmissionMechanisms.Q(i) for i = 1:5]
+    x = [TransmissionChannelAnalysis.Q(i) for i = 1:5]
 
     q = x[1] | x[2]
     @test length(q.vars) == 3
@@ -81,7 +81,7 @@ end
 end
 
 @testset "NOT" begin
-    x = [TransmissionMechanisms.Q(i) for i = 1:5]
+    x = [TransmissionChannelAnalysis.Q(i) for i = 1:5]
 
     q = !x[1]
     @test q.vars[1] == "!x1"

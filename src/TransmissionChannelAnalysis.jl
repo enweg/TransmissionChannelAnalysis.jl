@@ -1,4 +1,4 @@
-module TransmissionMechanisms
+module TransmissionChannelAnalysis
 
 WEGNER = "Wegner et al (2024)"
 

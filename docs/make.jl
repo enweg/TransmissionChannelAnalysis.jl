@@ -1,16 +1,16 @@
-using TransmissionMechanisms
+using TransmissionChannelAnalysis
 using Documenter
 
-DocMeta.setdocmeta!(TransmissionMechanisms, :DocTestSetup, :(using TransmissionMechanisms); recursive=true)
+DocMeta.setdocmeta!(TransmissionChannelAnalysis, :DocTestSetup, :(using TransmissionChannelAnalysis); recursive=true)
 
 makedocs(;
-    modules=[TransmissionMechanisms],
+    modules=[TransmissionChannelAnalysis],
     authors="Enrico Wegner",
-    repo="https://github.com/enweg/TransmissionMechanisms.jl/blob/{commit}{path}#{line}",
-    sitename="TransmissionMechanisms.jl",
+    repo="https://github.com/enweg/TransmissionChannelAnalysis.jl/blob/{commit}{path}#{line}",
+    sitename="TransmissionChannelAnalysis.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://enweg.github.io/TransmissionMechanisms.jl",
+        canonical="https://enweg.github.io/TransmissionChannelAnalysis.jl",
         edit_link="main",
         assets=String[],
     ),
@@ -20,6 +20,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/enweg/TransmissionMechanisms.jl",
+    repo="github.com/enweg/TransmissionChannelAnalysis.jl",
     devbranch="main",
 )

@@ -1,4 +1,4 @@
-name = "TransmissionMechanisms"
+name = "TransmissionChannelAnalysis"
 uuid = "d500094b-e8d7-4ee4-9514-4e3996dd73c3"
 authors = ["Enrico Wegner"]
 version = "2.0.0-DEV"

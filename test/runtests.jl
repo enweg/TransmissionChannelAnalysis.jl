@@ -4,6 +4,9 @@ using Serialization
 using JSON
 using LinearAlgebra
 
+# common functions used for tests in "transmission-function.jl"
+include("./transmission-function-tests.jl")
+
 @testset "TransmissionChannelAnalysis.jl REMOVE_CONTRADICTIONS = true" begin
     # Write your tests here.
     include("./simplifying.jl")

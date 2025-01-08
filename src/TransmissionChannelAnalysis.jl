@@ -2,6 +2,7 @@ module TransmissionChannelAnalysis
 
 WEGNER = "Wegner et al (2024)"
 
+include("./utils.jl")
 include("./simplifying.jl")
 include("./condition.jl")
 include("./transmission-function.jl")
@@ -10,6 +11,7 @@ include("./transmission-function-irfs.jl")
 include("./structural-representation.jl")
 
 # export Q  # Not exported due to easy mistakes by users.
+export map_x_to_y, map_y_to_x
 export remove_contradictions
 export make_condition
 export to_transmission_irfs, transmission

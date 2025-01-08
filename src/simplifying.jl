@@ -112,6 +112,19 @@ end
     string_and(s1::String, s2::String)
 
 Combine two strings using "&".
+
+Makes sure that only unique variables occur. Also sorts the string such that 
+negated variables only come after all non-negated variables, and higher-variables
+come before lower variables. 
+
+## Examples
+
+```julia
+s1 = "x1 & x2"
+s2 = "x1 & !x2"
+string_and(s1, s2)
+# output: "x2 & x1 & !x2"
+```
 """
 function string_and(s1::String, s2::String)
     s2 == "" && return s1
@@ -173,10 +186,10 @@ this terms to be zero.
 
 ## Returns
 
-- If `TransmissionChannelAnalysis.REMOVE_CONTRADICTIONS == false`, then `q` will
+- If `TransmissionChannelAnalysis.REMOVE_CONTRADICTIONS[] == false`, then `q` will
   simply be returned again. 
-- If `TransmissionChannelAnalysis.REMOVE_CONTRADICTIONS == false`, then 
-    1. If all terms are contradicting, the `Q("", 0)` will be retuned, which has
+- If `TransmissionChannelAnalysis.REMOVE_CONTRADICTIONS[] == true`, then 
+    1. If all terms are contradicting, then `Q("", 0)` will be retuned, which has
        a transmission effect of zero. 
     2. If some terms are non-contradicting, then a transmission condition
        consisting of only the non-contradicting terms will be returned. 
@@ -184,7 +197,7 @@ this terms to be zero.
 ## Examples
 
 ```julia
-TransmissionChannelAnalysis.REMOVE_CONTRADICTIONS = true
+TransmissionChannelAnalysis.REMOVE_CONTRADICTIONS[] = true
 q = TransmissionChannelAnalysis.Q("x1", 1)
 remove_contradictions(q)  # will return q again since no contradictions exist
 

@@ -64,26 +64,26 @@ function to_transmission_irfs(irfs::AbstractArray{T, 3}) where {T}
 end
 
 """
-  transmission(from::Int, arr1::AbstractMatrix{T}, arr2::AbstractMatrix{T}, q::Q; method = :BQbb) where {T}
+  transmission(from::Int, arr1::AbstractMatrix{T}, arr2::AbstractMatrix{T}, q::Q; method = :BOmega) where {T}
 
 
 Given a transmission condition `q`, calculate the transmission effect using the
-either the `:BQbb` method (the default), or the `:irfs` method. 
+either the `:BOmega` method (the default), or the `:irfs` method. 
 
 ## Arguments
 
 - `from::Int`: Shock number. 
-- `arr1::AbstractMatrix{T}`. In case of `:BQbb` this must be `B`, in case of
+- `arr1::AbstractMatrix{T}`. In case of `:BOmega` this must be `B`, in case of
   `:irfs` this must be `irfs`. See the documentation for the specific methods
-  for `transmission(..., ::Type{Val{:BQbb}})` and `transmission(...,::Type{Val{:irfs}})`. 
-- `arr2::AbstractMatrix{T}`: In case of `:BQbb` this must be `Qbb`, in case of
+  for `transmission(..., ::Type{Val{:BOmega}})` and `transmission(...,::Type{Val{:irfs}})`. 
+- `arr2::AbstractMatrix{T}`: In case of `:BOmega` this must be `Omega`, in case of
   `:irfs` this must be `irfs_ortho`. See the documentation for the specific methods
-  for `transmission(..., ::Type{Val{:BQbb}})` and `transmission(...,::Type{Val{:irfs}})`.  
+  for `transmission(..., ::Type{Val{:BOmega}})` and `transmission(...,::Type{Val{:irfs}})`.  
 - `q::Q`: A transmission condition. See also [`Q`](@ref).
 
 ## Keyword Arguments
 
-- `method::Symbol`: Either `:BQbb` in which case the transmission effect will be
+- `method::Symbol`: Either `:BOmega` in which case the transmission effect will be
   calculated using the second method in $WEGNER, or `:irfs` in which case the
   transmission effect is calculated using the first method in $WEGNER. 
 
@@ -103,10 +103,10 @@ s = "(x1 | x2) & !x3"
 cond = make_condition(s)
 
 B = randn(k*(h+1), k*(h+1))
-Qbb = randn(k*(h+1), k*(h+1))
+Omega = randn(k*(h+1), k*(h+1))
 
-effect = transmission(1, B, Qbb, cond; method = :BQbb)
-effect = transmission(1, B, Qbb, cond)  # same as above; default is :BQbb
+effect = transmission(1, B, Omega, cond; method = :BOmega)
+effect = transmission(1, B, Omega, cond)  # same as above; default is :BOmega
 
 irfs = randn(k, k, h+1)
 irfs_ortho = randn(k, k, h+1)
@@ -117,6 +117,6 @@ irfs_ortho = to_transmission_irfs(irfs_ortho)
 effect = transmission(1, irfs, irfs_ortho, cond; method = :irfs)
 ```
 """
-function transmission(from::Int, arr1::AbstractMatrix{T}, arr2::AbstractMatrix{T}, q::Q; method = :BQbb) where {T}
+function transmission(from::Int, arr1::AbstractMatrix{T}, arr2::AbstractMatrix{T}, q::Q; method = :BOmega) where {T}
   return transmission(from, arr1, arr2, q, Val{method})
 end

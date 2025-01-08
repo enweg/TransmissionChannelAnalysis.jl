@@ -33,7 +33,7 @@ with the structure of ``B`` and ``\mathbb{Q}`` given in the paper.
 
 ## Notes
 
-- See also [`make_structural_Qbb`](@ref) and [`to_structural_transmission_model`](@ref).
+- See also [`make_structural_Omega`](@ref) and [`to_structural_transmission_model`](@ref).
 
 """
 function make_structural_B(A0_ortho::AbstractMatrix, Aplus_ortho::AbstractMatrix, p::Int, max_horizon::Int)
@@ -94,7 +94,7 @@ with the structure of ``B`` and ``\mathbb{Q}`` given in the paper.
 - See also [`make_structural_B`](@ref) and [`to_structural_transmission_model`](@ref).
 
 """
-function make_structural_Qbb(irf0::AbstractMatrix, A0_ortho::AbstractMatrix, max_horizon::Int)
+function make_structural_Omega(irf0::AbstractMatrix, A0_ortho::AbstractMatrix, max_horizon::Int)
     
     m, k = size(A0_ortho)
     
@@ -104,9 +104,9 @@ function make_structural_Qbb(irf0::AbstractMatrix, A0_ortho::AbstractMatrix, max
     Qt = L*irf0
     DQt = D*Qt
     eye_h = diagm(ones(max_horizon+1))
-    Qbb = kron(eye_h, DQt)
+    Omega = kron(eye_h, DQt)
     
-    return Qbb
+    return Omega
 end
 
 @doc raw"""
@@ -151,6 +151,6 @@ function to_structural_transmission_model(irf0::AbstractMatrix, A0_ortho::Abstra
     k = size(A0_ortho, 1)
     n_ex = size(Aplus_ortho, 1) - p*k
     B = make_structural_B(A0_ortho, Aplus_ortho[(n_ex+1):end, :], p, max_horizon)
-    Qbb = make_structural_Qbb(irf0, A0_ortho, max_horizon)
-    return B, Qbb
+    Omega = make_structural_Omega(irf0, A0_ortho, max_horizon)
+    return B, Omega
 end

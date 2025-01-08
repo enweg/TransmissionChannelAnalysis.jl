@@ -1,7 +1,7 @@
 """
-    apply_and!(B::AbstractMatrix{T}, Qbb::AbstractMatrix{T}, from::Int, var::Int)
+    apply_and!(B::AbstractMatrix{T}, Omega::AbstractMatrix{T}, from::Int, var::Int)
     
-Manipulate `B` and `Qbb` so that `var` lies on all paths. This corresponds to
+Manipulate `B` and `Omega` so that `var` lies on all paths. This corresponds to
 zeroing out all edges going directly from the shock to any variables ordered
 after `var` and zeroing out any edges going from variables ordered before `var`
 to any variables ordered after `var`.  
@@ -10,8 +10,8 @@ to any variables ordered after `var`.
 
 - `B::AbstractMatrix{T}`: Part of the structural transmission representation in
   $WEGNER. See also [`make_structural_B`](@ref). 
-- `Qbb::AbstractMatrix{T}`: Part of the structural transmission representation
-  in $WEGNER. See also [`make_structural_Qbb`](@ref). 
+- `Omega::AbstractMatrix{T}`: Part of the structural transmission representation
+  in $WEGNER. See also [`make_structural_Omega`](@ref). 
 - `from::Int`: The shock number. 
 - `var::Int`: The variable number that must lie on all paths. 
 
@@ -19,16 +19,16 @@ to any variables ordered after `var`.
 
 - This function is meant for internal use only. 
 """
-function apply_and!(B::AbstractMatrix{T}, Qbb::AbstractMatrix{T}, from::Int, var::Int) where {T}
-    Qbb[(var+1):end, from] .= 0
+function apply_and!(B::AbstractMatrix{T}, Omega::AbstractMatrix{T}, from::Int, var::Int) where {T}
+    Omega[(var+1):end, from] .= 0
     B[(var+1):end, 1:(var-1)] .= 0
-    return B, Qbb
+    return B, Omega
 end
 
 """
-    apply_not!(B::AbstractMatrix{T}, Qbb::AbstractMatrix{T}, from::Int, var::Int)
+    apply_not!(B::AbstractMatrix{T}, Omega::AbstractMatrix{T}, from::Int, var::Int)
     
-Manipulate `B` and `Qbb` so that `var` lies on no paths. This corresponds to
+Manipulate `B` and `Omega` so that `var` lies on no paths. This corresponds to
 zeroing out the edge from the shock to `var`, and zeroing out all edges from
 variables ordered before `var` to `var`. The paper mentions also zeroing out
 edges leaving `var`, but this is not necessary.  
@@ -37,8 +37,8 @@ edges leaving `var`, but this is not necessary.
 
 - `B::AbstractMatrix{T}`: Part of the structural transmission representation in
   $WEGNER. See also [`make_structural_B`](@ref). 
-- `Qbb::AbstractMatrix{T}`: Part of the structural transmission representation
-  in $WEGNER. See also [`make_structural_Qbb`](@ref). 
+- `Omega::AbstractMatrix{T}`: Part of the structural transmission representation
+  in $WEGNER. See also [`make_structural_Omega`](@ref). 
 - `from::Int`: The shock number. 
 - `var::Int`: The variable number that must lie on all paths. 
 
@@ -46,30 +46,30 @@ edges leaving `var`, but this is not necessary.
 
 - This function is meant for internal use only. 
 """
-function apply_not!(B::AbstractMatrix{T}, Qbb::AbstractMatrix{T}, from::Int, var::Int) where {T}
-    Qbb[var, from] = 0
+function apply_not!(B::AbstractMatrix{T}, Omega::AbstractMatrix{T}, from::Int, var::Int) where {T}
+    Omega[var, from] = 0
     B[var, :] .= 0
-    return B, Qbb
+    return B, Omega
 end
 
 """
     transmission(from::Int, 
         B::AbstractMatrix{T},
-        Qbb::AbstractMatrix{T}, 
+        Omega::AbstractMatrix{T}, 
         q::Q, 
-        ::Type{Val{:BQbb}}
+        ::Type{Val{:BOmega}}
     ) where {T}
 
 Given a transmission condition `q`, calculate the transmission effect using the
-`:BQbb` method. 
+`:BOmega` method. 
 
 ## Arguments
 
 - `from::Int`: Shock number. 
 - `B::AbstractMatrix{T}`: Part of the structural transmission representation in
   $WEGNER. See also [`make_structural_B`](@ref). 
-- `Qbb::AbstractMatrix{T}`: Part of the structural transmission representation
-  in $WEGNER. See also [`make_structural_Qbb`](@ref). 
+- `Omega::AbstractMatrix{T}`: Part of the structural transmission representation
+  in $WEGNER. See also [`make_structural_Omega`](@ref). 
 - `q::Q`: A transmission condition. See also [`Q`](@ref). 
 
 ## Returns 
@@ -88,40 +88,40 @@ s = "(x1 | x2) & !x3"
 cond = make_condition(s)
 
 B = randn(k*(h+1), k*(h+1))
-Qbb = randn(k*(h+1), k*(h+1))
+Omega = randn(k*(h+1), k*(h+1))
 
-effect = transmission(1, B, Qbb, cond)
+effect = transmission(1, B, Omega, cond)
 ```
 """
 function transmission(from::Int, 
   B::AbstractMatrix{T},
-  Qbb::AbstractMatrix{T}, 
+  Omega::AbstractMatrix{T}, 
   q::Q, 
-  ::Type{Val{:BQbb}}
+  ::Type{Val{:BOmega}}
 ) where {T}
 
-    @info "Using method :BQbb to calculate transmission effect."
+    @info "Using method :BOmega to calculate transmission effect."
     var_and, var_not, multiplier = get_varnums_and_multiplier(q)
-    return transmission(from, B, Qbb, var_and, var_not, multiplier, Val{:BQbb})
+    return transmission(from, B, Omega, var_and, var_not, multiplier, Val{:BOmega})
 end
 function transmission(
   from::Int, 
   B::Matrix{T}, 
-  Qbb::Matrix{T}, 
+  Omega::Matrix{T}, 
   var_and::Vector{Int}, 
   var_not::Vector{Int}, 
-  ::Type{Val{:BQbb}}
+  ::Type{Val{:BOmega}}
 ) where {T}
 
     B_tilde = copy(B)
-    Qbb_tilde = copy(Qbb)
+    Omega_tilde = copy(Omega)
     for v in var_and
-        apply_and!(B_tilde, Qbb_tilde, from, v)
+        apply_and!(B_tilde, Omega_tilde, from, v)
     end
     for v in var_not
-        apply_not!(B_tilde, Qbb_tilde, from, v)
+        apply_not!(B_tilde, Omega_tilde, from, v)
     end
-    irfs = (I - B_tilde) \ Qbb_tilde[:, from]
+    irfs = (I - B_tilde) \ Omega_tilde[:, from]
     # var_and and var_not are empty if effect reduced to total effect
     isempty(var_and) && isempty(var_not) && return irfs
     irfs[1:maximum(vcat(var_and, var_not))] .= T(NaN)
@@ -129,11 +129,11 @@ function transmission(
 end 
 function transmission(from::Int, 
   B::Matrix{T}, 
-  Qbb::Matrix{T}, 
+  Omega::Matrix{T}, 
   var_and::Vector{Vector{Int}}, 
   var_not::Vector{Vector{Int}}, 
   multiplier::Vector{Number}, 
-  ::Type{Val{:BQbb}}
+  ::Type{Val{:BOmega}}
 ) where {T}
 
     effects = Vector{Vector{T}}(undef, length(var_and))
@@ -141,7 +141,7 @@ function transmission(from::Int,
         v_and = var_and[i]
         v_not = var_not[i]
         m = multiplier[i]
-        effects[i] = m .* transmission(from, B, Qbb, v_and, v_not, Val{:BQbb})
+        effects[i] = m .* transmission(from, B, Omega, v_and, v_not, Val{:BOmega})
     end
     return sum(effects)
 end

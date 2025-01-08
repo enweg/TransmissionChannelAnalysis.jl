@@ -48,13 +48,13 @@ cond = make_condition(s)
 
 ```julia
 from_shock = 1
-effect = transmission(from_shock, B, Qbb, cond)
-effect = transmission(from_shock, B, Qbb, cond; method = :BQbb)  # equivalent to above.
+effect = transmission(from_shock, B, Omega, cond)
+effect = transmission(from_shock, B, Omega, cond; method = :BOmega)  # equivalent to above.
 ```
 
-where `B` and `Qbb` correspond to the structural matrices in the rewritten
+where `B` and `Omega` correspond to the structural matrices in the rewritten
 structural form (also see the documentation for transmission). To obtain `B` and
-`Qbb` from an estimated and (partially) identified SVAR, use
+`Omega` from an estimated and (partially) identified SVAR, use
 `to_structural_transmission_model`. If only IRFs are available, or if the IRF
 method is preferred, then effect can be calculated by using `transmission` and
 setting the keyword argument `method = :irfs` as follows
@@ -68,8 +68,8 @@ where the `irfs` and `irfs_ortho` are the structural IRFs (with possibly `NaN`
 columns indicating unidentified shocks) and `irfs_ortho` are the orthogonalised
 IRFs. Both are in transmission form obtained using `to_transmission_irfs`. 
 
-The `:BQbb` method is often the more efficient one, and as implemented here can
-be used for all Boolean statements. Both the `:BQbb` and the `:irfs` method
+The `:BOmega` method is often the more efficient one, and as implemented here can
+be used for all Boolean statements. Both the `:BOmega` and the `:irfs` method
 return a vector with index `i` being the transmission effect on $x_i$. If $x_k$
 is the variable with the highest subscript involved in the Boolean statement,
 then the first `k` entries in the returned vector are `NaN` since interpretation
@@ -88,9 +88,10 @@ transmission condition. The second field is the `multiplier` field which is a
   `"x1"` and a single element in `multiplier` equal to `1`. 
 - The condition $Q[x_1 \land x_2]$ results in a single element in `vars` corresponding
   to `"x2 & x1"` and a single element in `multiplier` corresponding to `1`. 
-- The condition $Q[x_1 \lor x_2] = Q[x_1] + Q[x_2] - Q[x_1 \land x_2]$ results in three elements in `vars` corresponding
-  to `"x1"`, `"x2"`, and `"x2 & x1"` and three elements in `multiplier`
-  corresponding to `1`, `1`, and `-1` respectively.
+  And statements are not further split, since they can easily be calculated. 
+- The condition $Q[x_1 \lor x_2] = Q[x_1] + Q[x_2] - Q[x_1 \land x_2]$ results 
+  in three elements in `vars` corresponding to `"x1"`, `"x2"`, and `"x2 & x1"` 
+  and three elements in `multiplier` corresponding to `1`, `1`, and `-1` respectively.
 
 Starting with simple queries of the form `Q("x1")`, and `Q("x2")`, the
 overloaded operators yield simplifications consistent with the algebra in the

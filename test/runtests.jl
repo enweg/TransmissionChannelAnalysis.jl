@@ -11,6 +11,10 @@ include("./transmission-function-tests.jl")
     include("./utils.jl")
 end
 
+@testset "Representation" begin
+    include("./structural-representation.jl")
+end
+
 @testset "TransmissionChannelAnalysis.jl REMOVE_CONTRADICTIONS = true" begin
     # Write your tests here.
     include("./simplifying.jl")

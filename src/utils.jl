@@ -109,4 +109,8 @@ function map_x_to_y(s_x::String, order::AbstractVector{<:Int})
   return s_y
 end
 
+"""
+Create a permutation matrix.
+"""
+permmatrix(order::AbstractVector{<:Int}) = I(length(order))[order, :]
 

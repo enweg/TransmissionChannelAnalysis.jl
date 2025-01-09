@@ -114,3 +114,25 @@ Create a permutation matrix.
 """
 permmatrix(order::AbstractVector{<:Int}) = I(length(order))[order, :]
 
+"""
+Slides A into B. 
+
+# Notes
+- used to construct the B and Omega matrices. 
+
+"""
+function slide_in!(B::AbstractMatrix, A::AbstractMatrix)
+    mod(size(B, 1), size(A, 1)) == 0 || error("A cannot slide into B because the number of rows of B is not an integer multiple of the number of rows of A.")
+
+    size(B, 1) == size(B, 2) || error("B must be square.")
+
+    n_horizontal_blocks = floor(Int, size(B, 1) / size(A, 1))
+    K = size(A, 1)
+    for i = 1:n_horizontal_blocks
+        block = A[:, max(1, (end - i * K + 1)):end]
+        r = ((i-1)*K+1):(i*K)
+        c = (i*K-size(block, 2)+1):(i*K)
+        B[r, c] .= block
+    end
+    return B
+end

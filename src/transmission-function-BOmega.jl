@@ -132,7 +132,9 @@ function transmission(
     # var_and is a problem, since the path cannot have gone through at least 
     # one variable in var_and. Thus, correct is that all effects less than 
     # the maximum(var_and) are zero. 
-    irfs[1:maximum(var_and)] .= 0
+    if !isempty(var_and) 
+        irfs[1:maximum(var_and)] .= 0
+    end
 
     return irfs
 end 

@@ -3,7 +3,7 @@
     map_y_to_x(i::Int, t::Int, K::Int, order::AbstractVector{<:Int}) -> Int
 
 Maps a variable in the original transmission condition (using variables `y`) 
-to its corresponding static form (using variables `x`).
+to its corresponding systems form (using variables `x`).
 
 # Arguments
 - `i::Int`: Index of the variable in the original system.
@@ -13,7 +13,7 @@ to its corresponding static form (using variables `x`).
   (defined by the transmission matrix).
 
 # Returns
-- An integer representing the index of the corresponding `x` variable in the static form.
+- An integer representing the index of the corresponding `x` variable in the systems form.
 
 # Notes
 - The contemporaneous period is denoted is period `0`.
@@ -24,7 +24,7 @@ map_y_to_x(i::Int, t::Int, K::Int, order::AbstractVector{<:Int}) = K*t + findfir
     map_y_to_x(s_y::String, order::AbstractVector{<:Int}) -> String
 
 Transforms a string representing a transmission condition in terms of the original
-variables `y` to a string using the static form variables `x` based on a specified
+variables `y` to a string using the systems form variables `x` based on a specified
 ordering.
 
 # Arguments
@@ -34,7 +34,7 @@ ordering.
 
 # Returns
 - A string representing the same transmission question but using variables 
-  of the static system (`x`) rather than those of the dynamic (original) system (`y`).
+  of the  systems form (`x`) rather than those of the dynamic (original) system (`y`).
 
 # Example
 ```julia
@@ -56,12 +56,12 @@ end
 """
     map_x_to_y(xi::Int, order::AbstractVector{<:Int}) -> Tuple{Int, Int}
 
-Maps a variable from the static form (using variables `x`) back to its original
+Maps a variable from the systems form (using variables `x`) back to its original
 transmission condition form (using variables `y`). This function is the reverse of
 `map_y_to_x`.
 
 # Arguments
-- `xi::Int`: Index of the variable in the static form.
+- `xi::Int`: Index of the variable in the systems form.
 - `order::AbstractVector{<:Int}`: Ordering defined in the transmission matrix.
 
 # Returns
@@ -79,18 +79,18 @@ end
 """
     map_x_to_y(s_x::String, order::AbstractVector{<:Int}) -> String
 
-Transforms a string representing a transmission condition in terms of the static
+Transforms a string representing a transmission condition in terms of the systems
 form variables `x` back to a string using the original variables `y`. This function
 is the reverse of `map_y_to_x`.
 
 # Arguments
-- `s_x::String`: A string representing the transmission condition using static
+- `s_x::String`: A string representing the transmission condition using systems
   form variables `x`.
 - `order::AbstractVector{<:Int}`: Ordering defined by the transmission matrix.
 
 # Returns
 - A string representing the same transmission question but using variables 
-  of the dynamic (original) system (`y`) rather than those of the static system (`y`).
+  of the dynamic (original) system (`y`) rather than those of the  systems form (`x`).
 
 # Example
 ```julia

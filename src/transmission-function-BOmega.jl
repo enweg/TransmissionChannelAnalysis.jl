@@ -1,5 +1,5 @@
 """
-    apply_and!(B::AbstractMatrix{T}, Omega::AbstractMatrix{T}, from::Int, var::Int)
+    apply_and!(B::AbstractMatrix, Omega::AbstractMatrix, from::Int, var::Int)
     
 Manipulate `B` and `Omega` so that `var` lies on all paths. This corresponds to
 zeroing out all edges going directly from the shock to any variables ordered
@@ -8,25 +8,25 @@ to any variables ordered after `var`.
 
 ## Arguments
 
-- `B::AbstractMatrix{T}`: Part of the structural transmission representation in
-  $WEGNER. See also [`make_structural_B`](@ref). 
-- `Omega::AbstractMatrix{T}`: Part of the structural transmission representation
-  in $WEGNER. See also [`make_structural_Omega`](@ref). 
+- `B::AbstractMatrix`: Part of the systems representation in $WEGNER.
+- `Omega::AbstractMatrix`: Part of the systems representation in $WEGNER.
 - `from::Int`: The shock number. 
 - `var::Int`: The variable number that must lie on all paths. 
 
 ## Notes
 
 - This function is meant for internal use only. 
+- See also `make_B`, `make_Omega`, and `make_systems_form`
 """
-function apply_and!(B::AbstractMatrix{T}, Omega::AbstractMatrix{T}, from::Int, var::Int) where {T}
+function apply_and!(B::AbstractMatrix, Omega::AbstractMatrix, from::Int, var::Int)
+    # TODO: checked but double check
     Omega[(var+1):end, from] .= 0
     B[(var+1):end, 1:(var-1)] .= 0
     return B, Omega
 end
 
 """
-    apply_not!(B::AbstractMatrix{T}, Omega::AbstractMatrix{T}, from::Int, var::Int)
+    apply_not!(B::AbstractMatrix, Omega::AbstractMatrix, from::Int, var::Int)
     
 Manipulate `B` and `Omega` so that `var` lies on no paths. This corresponds to
 zeroing out the edge from the shock to `var`, and zeroing out all edges from
@@ -35,18 +35,18 @@ edges leaving `var`, but this is not necessary.
 
 ## Arguments
 
-- `B::AbstractMatrix{T}`: Part of the structural transmission representation in
-  $WEGNER. See also [`make_structural_B`](@ref). 
-- `Omega::AbstractMatrix{T}`: Part of the structural transmission representation
-  in $WEGNER. See also [`make_structural_Omega`](@ref). 
+- `B::AbstractMatrix`: Part of the systems representation in $WEGNER.
+- `Omega::AbstractMatrix`: Part of the systems representation in $WEGNER.
 - `from::Int`: The shock number. 
 - `var::Int`: The variable number that must lie on all paths. 
 
 ## Notes
 
 - This function is meant for internal use only. 
+- See also `make_B`, `make_Omega`, and `make_systems_form`
 """
-function apply_not!(B::AbstractMatrix{T}, Omega::AbstractMatrix{T}, from::Int, var::Int) where {T}
+function apply_not!(B::AbstractMatrix, Omega::AbstractMatrix, from::Int, var::Int)
+    # TODO: checked but double check
     Omega[var, from] = 0
     B[var, :] .= 0
     return B, Omega

@@ -9,10 +9,10 @@ function make_L_D(Sigma::AbstractMatrix{<:Real})
 end
 
 """
-Construct B of the static representation ``x = Bx + Omega\\varepsilon``.
+Construct B of the systems representation ``x = Bx + Omega\\varepsilon``.
 
 # Notes
-- See `make_static_model` for further information.
+- See `make_systems_form` for further information.
 """
 function make_B(
     As::Vector{<:AbstractMatrix},
@@ -38,10 +38,10 @@ function make_B(
 end
 
 """
-Construct Omega of the static representation ``x = Bx + Omega\\varepsilon``.
+Construct Omega of the systems representation ``x = Bx + Omega\\varepsilon``.
 
 # Notes
-- See `make_static_model` for further information.
+- See `make_systems_form` for further information.
 """
 function make_Omega(
     Phi0::AbstractMatrix,
@@ -62,7 +62,7 @@ function make_Omega(
 end
 
 """
-    make_static_model(
+    make_systems_form(
         Phi0::AbstractMatrix, 
         As::Vector{<:AbstractMatrix}, 
         Psis::Vector{<:AbstractMatrix}, 
@@ -71,7 +71,7 @@ end
         max_horizon::Int
     ) -> Tuple{AbstractMatrix, AbstractMatrix}
 
-Transform an SVARMA dynamic model into the static 
+Transform an SVARMA dynamic model into the systems 
 representation ``x = Bx + Omega\\varepsilon``.
 
 # Arguments
@@ -84,7 +84,7 @@ representation ``x = Bx + Omega\\varepsilon``.
 - `Sigma::AbstractMatrix{<:Real}`: The covariance matrix of reduced-form errors.
 - `order::AbstractVector{<:Int}`: The vector indicating the order of variables, 
   typically determined by the transmission matrix.
-- `max_horizon::Int`: The maximum time horizon to consider for the static model, 
+- `max_horizon::Int`: The maximum time horizon to consider for the systems model, 
   with `0` representing the contemporaneous period.
 
 # Returns
@@ -94,7 +94,7 @@ representation ``x = Bx + Omega\\varepsilon``.
 - Use `make_B` and `make_Omega` to construct the two matrices seperately.
 
 """
-function make_static_model(
+function make_systems_form(
     Phi0::AbstractMatrix, 
     As::Vector{<:AbstractMatrix}, 
     Psis::Vector{<:AbstractMatrix}, 

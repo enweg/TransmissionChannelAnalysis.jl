@@ -11,6 +11,7 @@ include("./transmission-function-irfs.jl")
 include("./structural-representation.jl")
 
 # export Q  # Not exported due to easy mistakes by users.
+export show_y, @show_y
 export map_x_to_y, map_y_to_x
 export remove_contradictions
 export make_condition

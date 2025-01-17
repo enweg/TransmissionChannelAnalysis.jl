@@ -130,7 +130,7 @@ function string_and(s1::String, s2::String)
     s2 == "" && return s1
     s1 == "" && return s2
     s = join([s1, s2], " & ")
-    xs = sort(unique([m.match for m in eachmatch(r"(!{0,1}x\d+)", s)]); rev = true)
+    xs = sort(unique([m.match for m in eachmatch(r"(!{0,1}x\d+)", s)]); rev=true)
     s = join(xs, " & ")
     return s
 end
@@ -213,7 +213,7 @@ function remove_contradictions(q::Q)
     !REMOVE_CONTRADICTIONS[] && return q
 
     var_and, var_not, _ = get_varnums_and_multiplier(q)
-    has_contradiction, contradictions =  check_contradiction(var_and, var_not)
+    has_contradiction, contradictions = check_contradiction(var_and, var_not)
     if has_contradiction
         all(contradictions) && return Q("", 0)  # This will later result in a zero
         return Q(q.vars[(!).(contradictions)], q.multiplier[(!).(contradictions)])
@@ -229,10 +229,10 @@ Combine two transmission conditions using AND.
 """
 function (&)(q1::Q, q2::Q)
     if length(q1.vars) == 1
-        q = collect_terms(Q([string_and(q2.vars[i], q1.vars[1]) for i = 1:lastindex(q2.vars)], q1.multiplier[1]*q2.multiplier))
+        q = collect_terms(Q([string_and(q2.vars[i], q1.vars[1]) for i = 1:lastindex(q2.vars)], q1.multiplier[1] * q2.multiplier))
         return remove_contradictions(q)
     elseif length(q2.vars) == 1
-        q = collect_terms(Q([string_and(q1.vars[i], q2.vars[1]) for i = 1:lastindex(q1.vars)], q2.multiplier[1]*q1.multiplier))
+        q = collect_terms(Q([string_and(q1.vars[i], q2.vars[1]) for i = 1:lastindex(q1.vars)], q2.multiplier[1] * q1.multiplier))
         return remove_contradictions(q)
     else
         qs = [Q(q1.vars[i], q1.multiplier[i]) & q2 for i = 1:lastindex(q1.vars)]
@@ -297,17 +297,17 @@ function Base.string(q::Q)
         if m == 1
             ms = ""
         end
-        
+
         vs = string(v)
         if vs == ""
             vs = "T"
         end
-            
+
         push!(s, "$(ms)Q($(vs))")
     end
     return s
 end
-function  Base.show(io::IO, ::MIME"text/plain", q::Q)
+function Base.show(io::IO, ::MIME"text/plain", q::Q)
     if haskey(ENV, "SHOW_Q_AS_SUM") && ENV["SHOW_Q_AS_SUM"] == "true"
         s = join(string(q), " + ")
         return write(io, s)
@@ -315,3 +315,41 @@ function  Base.show(io::IO, ::MIME"text/plain", q::Q)
     s = join(string(q), "\n")
     return write(io, s)
 end
+
+"""
+
+    show_y(q::Q, order::AbstractVector{<:Int})
+    @show_y(q, order)
+
+Pretty print the condition `q::Q` using the variables of the dynamic system, i.e. `y`.
+
+## Arguments
+- `q::Q`: A transmission condition. See also `Q`. 
+- `order::AbstractVector{<:Int}`: The order of variables defined by the 
+  transmission matrix. 
+
+## Examples
+
+```julia
+s_y = "y_{1,0} | !y_{1,1}"
+order = [3,1,2]
+
+q = make_condition(s_y, order)
+@show_y q \$order
+```
+
+"""
+function show_y(q::Q, order::AbstractVector{<:Int})
+    s_x = string(q)
+    vec_s_y = map(s -> map_x_to_y(s, order), s_x)
+    if haskey(ENV, "SHOW_Q_AS_SUM") && ENV["SHOW_Q_AS_SUM"] == "true"
+        return join(vec_s_y, " + ")
+    end
+    return join(vec_s_y, "\n")
+end,
+macro show_y(q, order)
+    blk = Expr(:block)
+    push!(blk.args, :(println(show_y($(esc(q)), $(esc(order))))))
+    return blk
+end
+

@@ -17,7 +17,7 @@ export map_x_to_y, map_y_to_x
 export remove_contradictions
 export make_condition
 export to_transmission_irfs, transmission
-export make_structural_B, make_structural_Omega, to_structural_transmission_model
+export make_structural_B, make_structural_Omega, make_systems_form
 export through, not_through
 
 end

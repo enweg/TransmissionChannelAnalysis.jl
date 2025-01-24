@@ -136,3 +136,21 @@ function slide_in!(B::AbstractMatrix, A::AbstractMatrix)
     end
     return B
 end
+
+"""
+    set_remove_contradictions(b::Bool)
+
+Sets REMOVE_CONTRADICTIONS to `b`. 
+
+If `REMOVE_CONTRADICTIONS==true`, then contradicting terms are removed before
+the transmission effect is computed. A term is deemed contradicting if it 
+includes some "xi & !xi". This would result in the entire Boolean statement to 
+be false, and thus in the effect of this terms to be zero. 
+"""
+function set_remove_contradictions(b::Bool)
+  REMOVE_CONTRADICTIONS[] = b
+end
+
+
+
+

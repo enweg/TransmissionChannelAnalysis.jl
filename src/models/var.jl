@@ -185,7 +185,7 @@ function fit!(model::VAR)
     return model
 end
 
-function fit_and_select!(model::VAR, ic_function::Function)
+function fit_and_select!(model::VAR, ic_function::Function=aic)
     # model.p provides the maximum lag length in this case
     # ic_function(Sigma_u, num_coeffs, T)
     # returns model_best, ICs table

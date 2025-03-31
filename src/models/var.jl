@@ -94,6 +94,7 @@ function VAR(data::DataFrame, p::Int; trend_exponents::AbstractVector{<:Number}=
 end
 
 coeffs(model::VAR) = model.B
+cov(model::VAR) = model.Sigma_u
 fitted(model::VAR) = model.Yhat
 residuals(model::VAR) = model.U
 # effective observations since first p observations are lost
@@ -288,11 +289,12 @@ end
 function simulate(
     ::Type{VAR},
     T::Int,
-    B::AbstractMatrix{<:Number};
+    B::AbstractMatrix{<:Number}, 
+    Sigma_u::AbstractMatrix{<:Number}=I(size(B, 1));
     trend_exponents::AbstractVector{<:Number}=[0],
     initial::Union{Nothing, AbstractVector{<:Number}}=nothing
 )
     k = size(B, 1) 
-    errors = randn(k, T) 
+    errors = cholesky(Sigma_u).L * randn(k, T) 
     return simulate!(VAR, errors, B; trend_exponents=trend_exponents, initial=initial)
 end

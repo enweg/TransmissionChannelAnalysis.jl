@@ -1,5 +1,6 @@
 using LinearAlgebra
 using DataFrames
+using Base: require
 
 
 """
@@ -63,8 +64,8 @@ mutable struct VAR <: Model
     Yhat::AbstractMatrix{<:Number}                # Fitted values
 end
 function VAR(
-    B::AbstractMatrix{<:Number}, 
-    Sigma_u::AbstractMatrix{<:Number}, 
+    B::AbstractMatrix{<:Number},
+    Sigma_u::AbstractMatrix{<:Number},
     p::Int,
     trend_exponents::AbstractVector{<:Number},
     data::DataFrame
@@ -78,7 +79,7 @@ function VAR(
     X = X[(p+1):end, :]
     # then add time trends
     for te in reverse(trend_exponents)
-        X = hcat(((p+1):size(data, 1)).^te, X) 
+        X = hcat(((p+1):size(data, 1)) .^ te, X)
     end
 
     return VAR(B, Sigma_u, p, trend_exponents, data, Y, X, U, Yhat)
@@ -93,10 +94,10 @@ function VAR(data::DataFrame, p::Int; trend_exponents::AbstractVector{<:Number}=
     return VAR(B, Sigma_u, p, trend_exponents, data)
 end
 
-coeffs(model::VAR) = model.B
-cov(model::VAR) = model.Sigma_u
-fitted(model::VAR) = model.Yhat
-residuals(model::VAR) = model.U
+coeffs(model::VAR) = require_fitted(model) && model.B
+cov(model::VAR) = require_fitted(model) && model.Sigma_u
+fitted(model::VAR) = require_fitted(model) && model.Yhat
+residuals(model::VAR) = require_fitted(model) && model.U
 # effective observations since first p observations are lost
 nobs(model::VAR) = size(model.Y, 1)
 get_dependent(model::VAR) = model.Y
@@ -108,10 +109,16 @@ is_fitted(model::VAR) = size(model.Yhat, 1) >= 1
 # CHECKING MODEL ASSUMPTIONS
 #-------------------------------------------------------------------------------
 
-make_companion_matrix(model::VAR) = make_companion_matrix(coeffs(model), model.p, length(model.trend_exponents))
-spectral_radius(model::VAR) = spectral_radius(make_companion_matrix(model))
+function make_companion_matrix(model::VAR)
+    require_fitted(model)
+    return make_companion_matrix(coeffs(model), model.p, length(model.trend_exponents))
+end
+function spectral_radius(model::VAR)
+    require_fitted(model)
+    return spectral_radius(make_companion_matrix(model))
+end
 is_stable(C::AbstractMatrix) = (spectral_radius(C) < 1)
-is_stable(model::VAR) = (spectral_radius(model) < 1)
+is_stable(model::VAR) = require_fitted(model) && (spectral_radius(model) < 1)
 
 #-------------------------------------------------------------------------------
 # INFORMATION CRITERIA
@@ -133,6 +140,7 @@ function _ic(Sigma_u::AbstractMatrix{<:Number}, num_coeffs::Int, ct::Number)
     return logdet(Sigma_u) + ct * num_coeffs
 end
 function _ic(model::VAR, ct::Number)
+    require_fitted(model)
     Sigma_u = model.Sigma_u
     K = size(model.Y, 2)
     num_coeffs = K * size(model.X, 1)
@@ -201,7 +209,7 @@ function fit_and_select!(model::VAR, ic_function::Function=aic)
     n_coeffs = length(coeffs(model))
     T = nobs(model)
     ic_best = ic_function(Sigma_u, n_coeffs, T)
-    ics[p_max + 1] = ic_best
+    ics[p_max+1] = ic_best
     model_best = model
 
     for p = (p_max-1):-1:0
@@ -212,7 +220,7 @@ function fit_and_select!(model::VAR, ic_function::Function=aic)
         U_tmp = U_tmp[(p_max-p+1):end, :]  # model with pmax had fewer observations
         T == size(U_tmp, 1) || error("U adjustment is wrong.")  # TODO: remove
         Sigma_u_tmp = U_tmp' * U_tmp / T
-        
+
         ic_tmp = ic_function(Sigma_u_tmp, n_coeffs_tmp, T)
         ics[p+1] = ic_tmp
         if ic_tmp < ic_best
@@ -221,7 +229,7 @@ function fit_and_select!(model::VAR, ic_function::Function=aic)
         end
     end
 
-    return model_best, DataFrame(p = ps, IC = ics)
+    return model_best, DataFrame(p=ps, IC=ics)
 end
 
 #-------------------------------------------------------------------------------
@@ -273,7 +281,7 @@ function simulate!(                                             # k variables, T
     errors::AbstractMatrix{<:Number},                           # k  × T
     B::AbstractMatrix{<:Number};                                # k  × kp + m 
     trend_exponents::AbstractVector{<:Number}=[0],              # m  × 1
-    initial::Union{Nothing, AbstractVector{<:Number}}=nothing   # kp × 1
+    initial::Union{Nothing,AbstractVector{<:Number}}=nothing   # kp × 1
 )
 
     errors = _simulate!(errors, B; trend_exponents=trend_exponents, initial=initial)
@@ -284,17 +292,17 @@ function simulate!(                                             # k variables, T
     kp = size(B, 2) - m
     p = floor(Int, kp / k)
 
-    return VAR(data, p; trend_exponents=trend_exponents) 
+    return VAR(data, p; trend_exponents=trend_exponents)
 end
 function simulate(
     ::Type{VAR},
     T::Int,
-    B::AbstractMatrix{<:Number}, 
+    B::AbstractMatrix{<:Number},
     Sigma_u::AbstractMatrix{<:Number}=I(size(B, 1));
     trend_exponents::AbstractVector{<:Number}=[0],
-    initial::Union{Nothing, AbstractVector{<:Number}}=nothing
+    initial::Union{Nothing,AbstractVector{<:Number}}=nothing
 )
-    k = size(B, 1) 
-    errors = cholesky(Sigma_u).L * randn(k, T) 
+    k = size(B, 1)
+    errors = cholesky(Sigma_u).L * randn(k, T)
     return simulate!(VAR, errors, B; trend_exponents=trend_exponents, initial=initial)
 end

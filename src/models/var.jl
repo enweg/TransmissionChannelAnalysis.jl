@@ -195,7 +195,7 @@ function fit_and_select!(model::VAR, ic_function::Function)
     model_best = model
 
     for p = (p_max-1):-1:0
-        model_tmp = VAR(get_intput_data(model), p; trend_exponents=model.trend_exponents)
+        model_tmp = VAR(get_input_data(model), p; trend_exponents=model.trend_exponents)
         fit!(model_tmp)
         n_coeffs_tmp = length(coeffs(model_tmp))
         U_tmp = residuals(model_tmp)

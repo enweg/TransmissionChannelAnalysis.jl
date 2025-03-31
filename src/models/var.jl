@@ -91,7 +91,7 @@ residuals(model::VAR) = model.U
 nobs(model::VAR) = size(model.Y, 1)
 get_dependent(model::VAR) = model.Y
 get_independent(model::VAR) = model.X
-get_intput_data(model::VAR) = model.input_data
+get_input_data(model::VAR) = model.input_data
 is_fitted(model::VAR) = size(model.B, 1) >= 1
 
 #-------------------------------------------------------------------------------

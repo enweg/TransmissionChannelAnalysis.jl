@@ -27,7 +27,7 @@ include("./models/model.jl")
 include("./models/var.jl")
 
 export Model, VAR
-export coeffs, fitted, residuals, nobs, get_dependent, get_independent, get_input_data
+export coeffs, cov, fitted, residuals, nobs, get_dependent, get_independent, get_input_data
 export is_fitted
 export make_companion_matrix, spectral_radius, is_stable
 export aic, hqc, sic, bic

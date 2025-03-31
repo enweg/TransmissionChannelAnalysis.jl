@@ -52,8 +52,12 @@ C = make_companion_matrix(Bs)
 """
 function make_companion_matrix(Bs::AbstractVector{<:AbstractMatrix{<:Number}})
     B_plus = reduce(hcat, Bs)
-    k = size(B_plus, 1)
     p = length(Bs)
+    return make_companion_matrix(B_plus, p, 0)
+end
+function make_companion_matrix(B_plus::AbstractMatrix{<:Number}, p::Int, n_exo::Int)
+    B_plus = B_plus[:, (n_exo+1):end]
+    k = size(B_plus, 1)
     C = diagm(-k => ones(k * p - k))
     C[1:k, :] .= B_plus
     return C

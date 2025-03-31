@@ -98,7 +98,7 @@ is_fitted(model::VAR) = size(model.B, 1) >= 1
 # CHECKING MODEL ASSUMPTIONS
 #-------------------------------------------------------------------------------
 
-make_companion_matrix(model::VAR) = make_companion_matrix(model.B)
+make_companion_matrix(model::VAR) = make_companion_matrix(coeffs(model), model.p, length(model.trend_exponents))
 spectral_radius(model::VAR) = spectral_radius(make_companion_matrix(model))
 is_stable(C::AbstractMatrix) = (spectral_radius(C) < 1)
 is_stable(model::VAR) = (spectral_radius(model) < 1)

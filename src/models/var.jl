@@ -62,16 +62,16 @@ mutable struct VAR <: Model
     U::AbstractMatrix{<:Number}                   # Residual Matrix
     Yhat::AbstractMatrix{<:Number}                # Fitted values
 end
-function VAR(data::DataFrame, p::Int; trend_exponents::AbstractVector{<:Number}=[0])
-    K = size(data, 2)
+function VAR(
+    B::AbstractMatrix{<:Number}, 
+    Sigma_u::AbstractMatrix{<:Number}, 
+    p::Int,
+    trend_exponents::AbstractVector{<:Number},
+    data::DataFrame
+)
     type = eltype(data[:, 1])
-
-    # Making missing matrix of zero size
-    B = Matrix{type}(undef, 0, 0)
-    Sigma_u = Matrix{type}(undef, 0, 0)
     U = Matrix{type}(undef, 0, 0)
     Yhat = Matrix{type}(undef, 0, 0)
-
     Y = Matrix(data[(p+1):end, :])
     # first get lagged values
     X = make_lag_matrix(Matrix(data), p)
@@ -83,6 +83,15 @@ function VAR(data::DataFrame, p::Int; trend_exponents::AbstractVector{<:Number}=
 
     return VAR(B, Sigma_u, p, trend_exponents, data, Y, X, U, Yhat)
 end
+function VAR(data::DataFrame, p::Int; trend_exponents::AbstractVector{<:Number}=[0])
+    type = eltype(data[:, 1])
+
+    # Making missing matrix of zero size
+    B = Matrix{type}(undef, 0, 0)
+    Sigma_u = Matrix{type}(undef, 0, 0)
+
+    return VAR(B, Sigma_u, p, trend_exponents, data)
+end
 
 coeffs(model::VAR) = model.B
 fitted(model::VAR) = model.Yhat
@@ -92,7 +101,7 @@ nobs(model::VAR) = size(model.Y, 1)
 get_dependent(model::VAR) = model.Y
 get_independent(model::VAR) = model.X
 get_input_data(model::VAR) = model.input_data
-is_fitted(model::VAR) = size(model.B, 1) >= 1
+is_fitted(model::VAR) = size(model.Yhat, 1) >= 1
 
 #-------------------------------------------------------------------------------
 # CHECKING MODEL ASSUMPTIONS
@@ -257,6 +266,7 @@ function _simulate!(                                             # k variables, 
     return errors
 end
 
+# overwrites errors
 function simulate!(                                             # k variables, T periods, p lags
     ::Type{VAR},                                                  #  
     errors::AbstractMatrix{<:Number},                           # k  × T

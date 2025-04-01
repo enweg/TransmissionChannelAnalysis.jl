@@ -24,9 +24,9 @@ export set_remove_contradictions
 # Models
 include("./models/utils.jl")
 include("./models/model.jl")
-include("./models/var.jl")
 include("./models/identification.jl")
 include("./models/tools.jl")
+include("./models/var.jl")
 include("./models/svar.jl")
 
 export Model, VAR

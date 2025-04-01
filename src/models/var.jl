@@ -1,6 +1,5 @@
 using LinearAlgebra
 using DataFrames
-using Base: require
 
 
 """
@@ -104,6 +103,7 @@ get_dependent(model::VAR) = model.Y
 get_independent(model::VAR) = model.X
 get_input_data(model::VAR) = model.input_data
 is_fitted(model::VAR) = size(model.Yhat, 1) >= 1
+is_structural(model::VAR) = false
 
 #-------------------------------------------------------------------------------
 # CHECKING MODEL ASSUMPTIONS
@@ -305,4 +305,31 @@ function simulate(
     k = size(B, 1)
     errors = cholesky(Sigma_u).L * randn(k, T)
     return simulate!(VAR, errors, B; trend_exponents=trend_exponents, initial=initial)
+end
+
+#-------------------------------------------------------------------------------
+# IMPULSE RESPONSE FUNCTIONS
+#-------------------------------------------------------------------------------
+
+# B cannot include coeffs for deterministic trends
+function _var_irf(B::AbstractMatrix{<:Number}, p::Int, max_horizon::Int)
+    k = size(B, 1)
+    T = eltype(B)
+    irfs = zeros(T, k, k, max_horizon + 1)
+    copyto!(view(irfs, :, :, 1), diagm(ones(k)))
+
+    for h = 1:max_horizon
+        for j = 1:min(h, p)
+            Bj = view(B, :, ((j-1)*k+1):(j*k))
+            mul!(view(irfs, :, :, h + 1), Bj, view(irfs, :, :, h + 1 - j), 1.0, 1.0)
+        end
+    end
+
+    return irfs
+end
+
+function IRF(model::VAR, max_horizon::Int)
+    irfs = _var_irf(coeffs(model), model.p, max_horizon)
+    varnames = names(get_input_data(model))
+    return IRF(irfs, varnames, model)
 end

@@ -31,6 +31,7 @@ get_dependent(model::SVAR) = get_dependent(model.var)
 get_independent(model::SVAR) = get_independent(model.var)
 get_input_data(model::SVAR) = get_input_data(model.var)
 is_fitted(model::SVAR) = size(model.A0, 1) >= 1
+is_structural(model::SVAR) = true
 
 make_companion_matrix(model::SVAR) = require_fitted(model) && make_companion_matrix(model.var)
 spectral_radius(model::SVAR) = require_fitted(model) && spectral_radius(model.var)
@@ -116,4 +117,25 @@ function simulate(
     var = simulate(VAR, T, B, Sigma_u; trend_exponents=trend_exponents, initial=initial)
 
     return SVAR(get_input_data(var), p; trend_exponents=trend_exponents)
+end
+
+#-------------------------------------------------------------------------------
+# IMPULSE RESPONSE FUNCTIONS
+#-------------------------------------------------------------------------------
+
+function IRF(model::SVAR, max_horizon::Int)
+    require_fitted(model)
+    Phi0 = inv(model.A0)
+    irfs = _var_irf(coeffs(model.var), model.p, max_horizon)
+    for h=0:max_horizon
+        view(irfs, :, :, h+1) .= view(irfs, :, :, h+1) * Phi0 
+    end
+    varnames = names(get_input_data(model))
+    return IRF(irfs, varnames, model)
+end
+
+function IRF(model::VAR, method::AbstractIdentificationMethod, max_horizon::Int)
+    irfs = _identify_irfs(model, method, max_horizon)
+    varnames = names(get_input_data(model))
+    return IRF(irfs, varnames, model, method)
 end

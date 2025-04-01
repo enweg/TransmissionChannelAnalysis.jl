@@ -25,6 +25,9 @@ export set_remove_contradictions
 include("./models/utils.jl")
 include("./models/model.jl")
 include("./models/var.jl")
+include("./models/identification.jl")
+include("./models/tools.jl")
+include("./models/svar.jl")
 
 export Model, VAR
 export coeffs, cov, fitted, residuals, nobs, get_dependent, get_independent, get_input_data

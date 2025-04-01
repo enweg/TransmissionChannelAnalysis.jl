@@ -1,4 +1,5 @@
 using LinearAlgebra
+using DataFrames
 
 """
     make_companion_matrix(Bs::AbstractVector{<:AbstractMatrix{<:Number}}) -> Matrix{<:Number}
@@ -201,4 +202,9 @@ function _rotate_in!(x::AbstractVector{T}, x_new::AbstractVector{T}) where {T}
     end
     copyto!(view(x, 1:k), x_new)
     return x
+end
+
+function _find_variable_idx(variable::Union{Symbol, Int}, data::DataFrame)
+    isa(variable, Int) && return variable
+    return findfirst(==(variable), names(data))
 end

@@ -269,7 +269,10 @@ function _simulate!(                                             # k variables, 
     for t = 1:T
         _make_trend!(view(Zt, 1:m), t, trend_exponents)
         mul!(view(errors, :, t), B, Zt, one(M), one(M))
-        _rotate_in!(view(Zt, (m+1):(m+kp)), view(errors, :, t))
+        if kp > 0
+            # no need to rotate in if we do not have lagged terms
+            _rotate_in!(view(Zt, (m+1):(m+kp)), view(errors, :, t))
+        end
     end
 
     return errors

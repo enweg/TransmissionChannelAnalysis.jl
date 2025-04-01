@@ -1,0 +1,175 @@
+using TransmissionChannelAnalysis
+using Test
+using Random
+Random.seed!(6150533)
+
+@testset "Basic VAR functions" begin
+    k = 3
+    p = 2
+    T = 10_000
+    trend_exponents = [0]
+    B = 0.2 * randn(k, k*p + length(trend_exponents))
+
+    model = simulate(VAR, T, B; trend_exponents=trend_exponents)
+    @test is_fitted(model) == false
+    get_dependent(model)
+    get_independent(model)
+    get_input_data(model)
+    @test nobs(model) == T - p
+
+    # following functions should all through an error because model has not been 
+    # fitted yet
+    @test_throws "VAR must first be estimated" coeffs(model)
+    @test_throws "VAR must first" cov(model)
+    @test_throws "VAR must first" fitted(model)
+    @test_throws "VAR must first" residuals(model)
+    @test_throws "VAR must first" aic(model)
+    @test_throws "VAR must first" is_stable(model)
+    @test_throws "VAR must first" make_companion_matrix(model)
+
+    # fitting the model
+    fit!(model)
+    @test is_fitted(model) == true
+    # should no-longer throw an error
+    coeffs(model)
+    cov(model)
+    fitted(model)
+    residuals(model)
+    aic(model)
+    is_stable(model)
+    make_companion_matrix(model)
+end
+
+@testset "VAR coefficient recovery" begin
+    k = 3
+    p = 2
+    T = 10_000
+    trend_exponents = [0]
+    B = 0.2 * randn(k, k*p + length(trend_exponents))
+
+    # testing if estimation and simulation are correct by trying to recover
+    # original coefficients if errors are all zero
+    errors = zeros(k, T)
+    initial = fill(100, k*p)
+    model = simulate!(VAR, errors, B; trend_exponents=trend_exponents, initial = initial)
+    fit!(model)
+    @test maximum(abs, coeffs(model) - B) < 1e-6
+end
+
+@testset "VAR covariance recovery" begin
+    k = 3
+    p = 2
+    T = 10_000_000
+    trend_exponents = 0:1
+    B = 0.2 * randn(k, k*p + length(trend_exponents))
+    Sigma_u = [
+        1 0.1 0.1
+        0.1 1 0.1
+        0.1 0.1 1
+    ]
+    model = simulate(VAR, T, B, Sigma_u; trend_exponents=trend_exponents)
+    fit!(model)
+    @test maximum(abs, cov(model) - Sigma_u) < 1e-2
+end
+
+@testset "VAR information criteria" begin
+    k = 3
+    p = 2
+    T = 10_000
+    trend_exponents = [0]
+    B = 0.2 * randn(k, k*p + length(trend_exponents))
+
+    # Checking information criteria
+    model = simulate(VAR, T, B; trend_exponents=trend_exponents)
+    data = get_input_data(model)
+    model = VAR(data, 10; trend_exponents=trend_exponents)
+    model_best, ic_table = fit_and_select!(model, aic)
+    @test model_best.p == p
+    model_best, ic_table = fit_and_select!(model, bic)
+    @test model_best.p == p
+    model_best, ic_table = fit_and_select!(model, hqc)
+    @test model_best.p == p
+    model_best, ic_table = fit_and_select!(model, sic)
+    @test model_best.p == p
+end
+
+@testset "VAR trend exponents implementation test" begin
+
+    k = 3
+    p = 2
+    T = 1_000
+
+    # constant and linear trend
+    trend_exponents = 0:1
+    B = 0.2 * randn(k, k*p + length(trend_exponents))
+    model = simulate(VAR, T, B; trend_exponents=trend_exponents)
+    fit!(model)
+
+    # polynomial trend
+    trend_exponents = 0:2
+    B = 0.2 * randn(k, k*p + length(trend_exponents))
+    model = simulate(VAR, T, B; trend_exponents=trend_exponents)
+    fit!(model)
+
+    # no constant no trend
+    trend_exponents = Real[]
+    B = 0.2 * randn(k, k*p + length(trend_exponents))
+    model = simulate(VAR, T, B; trend_exponents=trend_exponents)
+    fit!(model)
+    
+    # only trend
+    trend_exponents = [1]
+    B = 0.2 * randn(k, k*p + length(trend_exponents))
+    model = simulate(VAR, T, B; trend_exponents=trend_exponents)
+    fit!(model)
+end
+
+@testset "VAR lag length implementation test" begin
+    
+    k = 3
+    trend_exponents = [0]
+    T = 10_000
+
+    # no lags
+    p = 0
+    B = 2 * randn(k, k*p + length(trend_exponents))
+    model = simulate(VAR, T, B; trend_exponents=trend_exponents)
+    fit!(model)
+    coeffs(model) - B
+
+    # no lags
+    p = 1
+    B = 0.2 * randn(k, k*p + length(trend_exponents))
+    model = simulate(VAR, T, B; trend_exponents=trend_exponents)
+    fit!(model)
+
+    # no lags
+    p = 10
+    B = 0.05 * randn(k, k*p + length(trend_exponents))
+    model = simulate(VAR, T, B; trend_exponents=trend_exponents)
+    fit!(model)
+end
+
+@testset "VAR number of variables implementation test" begin
+    p = 2
+    trend_exponents = [0]
+    T = 10_000
+
+    # AR
+    k = 1
+    B = 0.2 * randn(k, k*p + length(trend_exponents))
+    model = simulate(VAR, T, B; trend_exponents=trend_exponents)
+    fit!(model)
+
+    k = 2
+    B = 0.2 * randn(k, k*p + length(trend_exponents))
+    model = simulate(VAR, T, B; trend_exponents=trend_exponents)
+    fit!(model)
+
+    # no lags
+    k = 20
+    B = 0.05 * randn(k, k*p + length(trend_exponents))
+    model = simulate(VAR, T, B; trend_exponents=trend_exponents)
+    fit!(model)
+end
+

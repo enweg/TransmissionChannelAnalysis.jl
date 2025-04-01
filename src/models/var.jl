@@ -93,7 +93,13 @@ function VAR(data::DataFrame, p::Int; trend_exponents::AbstractVector{<:Number}=
     return VAR(B, Sigma_u, p, trend_exponents, data)
 end
 
-coeffs(model::VAR) = require_fitted(model) && model.B
+function coeffs(model::VAR, exclude_deterministic::Bool=false)
+    require_fitted(model)
+    exclude_deterministic || return model.B
+
+    m = length(model.trend_exponents)
+    return model.B[:, (m+1):end]
+end
 cov(model::VAR) = require_fitted(model) && model.Sigma_u
 fitted(model::VAR) = require_fitted(model) && model.Yhat
 residuals(model::VAR) = require_fitted(model) && model.U
@@ -332,7 +338,7 @@ function _var_irf(B::AbstractMatrix{<:Number}, p::Int, max_horizon::Int)
 end
 
 function IRF(model::VAR, max_horizon::Int)
-    irfs = _var_irf(coeffs(model), model.p, max_horizon)
-    varnames = names(get_input_data(model))
+    irfs = _var_irf(coeffs(model, true), model.p, max_horizon)
+    varnames = Symbol.(names(get_input_data(model)))
     return IRF(irfs, varnames, model)
 end

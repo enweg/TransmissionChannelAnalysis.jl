@@ -1,5 +1,4 @@
 mutable struct SVAR <: Model
-
     # defining the DGP
     A_plus::AbstractMatrix{<:Number}              # Coefficient matrices [C, A1, ..., Ap]
     A0::AbstractMatrix{<:Number}                  # Contemporaneous relationships
@@ -22,7 +21,13 @@ function SVAR(data::DataFrame, p::Int; trend_exponents::AbstractVector{<:Number}
     return SVAR(A_plus, A0, p, trend_exponents, var)
 end
 
-coeffs(model::SVAR) = require_fitted(model) && (model.A0, model.A_plus)
+function coeffs(model::SVAR, exclude_deterministic::Bool=false)
+    require_fitted(model)
+    exclude_deterministic || return (model.A0, model.A_plus)
+
+    m = length(model.trend_exponents)
+    return (model.A0, model.A_plus[:, (m+1):end])
+end
 fitted(model::SVAR) = require_fitted(model) && fitted(model.var)
 residuals(model::SVAR) = require_fitted(model) && residuals(model.var)
 shocks(model::SVAR) = require_fitted(model) && residuals(model.var) * model.A0'

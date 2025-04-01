@@ -1,6 +1,7 @@
 using TransmissionChannelAnalysis
 using Test
 using Random
+using LinearAlgebra
 Random.seed!(6150533)
 
 @testset "Basic VAR functions" begin
@@ -173,3 +174,63 @@ end
     fit!(model)
 end
 
+@testset "VAR IRFs" begin
+    
+    k = 3
+    p = 2
+    T = 10_000
+    trend_exponents = [0]
+    B = 0.2 * randn(k, k*p + length(trend_exponents))
+
+    model = simulate(VAR, T, B; trend_exponents=trend_exponents)
+    fit!(model)
+
+    max_horizon = 10
+    irf = IRF(model, max_horizon)
+    # computing IRFs manually using companion form
+    B_hat = coeffs(model, false)
+    C = make_companion_matrix(B_hat, p, length(trend_exponents))
+    irfs_manual = [(C^i)[1:k, 1:k] for i=0:max_horizon]
+    irfs_manual = cat(irfs_manual...; dims=3)
+    @test maximum(abs, irf.irfs - irfs_manual) < sqrt(eps())
+
+    # Same thing but not deterministic
+    trend_exponents = Real[]
+    B = 0.2 * randn(k, k*p + length(trend_exponents))
+    model = simulate(VAR, T, B; trend_exponents=trend_exponents)
+    fit!(model)
+    max_horizon = 10
+    irf = IRF(model, max_horizon)
+    B_hat = coeffs(model, false)
+    C = make_companion_matrix(B_hat, p, length(trend_exponents))
+    irfs_manual = [(C^i)[1:k, 1:k] for i=0:max_horizon]
+    irfs_manual = cat(irfs_manual...; dims=3)
+    @test maximum(abs, irf.irfs - irfs_manual) < sqrt(eps())
+    
+    # Same thing but more deterministic
+    trend_exponents = 0:6
+    B = 0.2 * randn(k, k*p + length(trend_exponents))
+    model = simulate(VAR, T, B; trend_exponents=trend_exponents)
+    fit!(model)
+    max_horizon = 10
+    irf = IRF(model, max_horizon)
+    B_hat = coeffs(model, false)
+    C = make_companion_matrix(B_hat, p, length(trend_exponents))
+    irfs_manual = [(C^i)[1:k, 1:k] for i=0:max_horizon]
+    irfs_manual = cat(irfs_manual...; dims=3)
+    @test maximum(abs, irf.irfs - irfs_manual) < sqrt(eps())
+    
+    # only one variable
+    trend_exponents = 0:1
+    k = 1
+    B = 0.2 * randn(k, k*p + length(trend_exponents))
+    model = simulate(VAR, T, B; trend_exponents=trend_exponents)
+    fit!(model)
+    max_horizon = 10
+    irf = IRF(model, max_horizon)
+    B_hat = coeffs(model, false)
+    C = make_companion_matrix(B_hat, p, length(trend_exponents))
+    irfs_manual = [(C^i)[1:k, 1:k] for i=0:max_horizon]
+    irfs_manual = cat(irfs_manual...; dims=3)
+    @test maximum(abs, irf.irfs - irfs_manual) < sqrt(eps())
+end

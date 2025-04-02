@@ -92,6 +92,24 @@ end
     @test model_best.p == p
     model_best, ic_table = fit_and_select!(model, sic)
     @test model_best.p == p
+
+    # Same checks but this time non identity covariance
+    Sigma_u = [
+        1 0.5 0.5;
+        0.5 1 0.5; 
+        0.5 0.5 1
+    ]
+    model = simulate(VAR, T, B, Sigma_u; trend_exponents=trend_exponents)
+    data = get_input_data(model)
+    model = VAR(data, 10; trend_exponents=trend_exponents)
+    model_best, ic_table = fit_and_select!(model, aic)
+    @test model_best.p == p
+    model_best, ic_table = fit_and_select!(model, bic)
+    @test model_best.p == p
+    model_best, ic_table = fit_and_select!(model, hqc)
+    @test model_best.p == p
+    model_best, ic_table = fit_and_select!(model, sic)
+    @test model_best.p == p
 end
 
 @testset "VAR trend exponents implementation test" begin

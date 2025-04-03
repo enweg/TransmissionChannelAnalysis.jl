@@ -39,6 +39,8 @@ export simulate!, simulate
 include("./models/svar.jl")
 export SVAR
 export identify, identify!
+include("./models/lp.jl")
+export LP
 
 
 end

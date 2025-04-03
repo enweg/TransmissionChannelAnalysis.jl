@@ -37,6 +37,7 @@ export aic, hqc, sic, bic
 export fit!, fit_and_select!
 export simulate!, simulate
 include("./models/svar.jl")
+export SVAR
 export identify, identify!
 
 

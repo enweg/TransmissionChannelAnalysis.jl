@@ -51,13 +51,38 @@ bic(model::SVAR) = require_fitted(model) && bic(model.var)
 # ESTIMATION AND IDENTICATION FUNCTIONS
 #-------------------------------------------------------------------------------
 
+function _identify(
+    B::AbstractMatrix{<:Number}, 
+    Sigma_u::AbstractMatrix{<:Number}, 
+    ::Recursive
+)
+
+    L = cholesky(Sigma_u).L
+    A0 = inv(L)
+    A_plus = A0 * B
+    return A0, A_plus
+end
 function _identify(model::VAR, ::Recursive)
     is_fitted(model) || error("Reduced form model must first be estimated.")
     Sigma_u = cov(model)
-    L = cholesky(Sigma_u).L
-    A0 = inv(L)
-    A_plus = A0 * coeffs(model)
-    return A0, A_plus
+    B = coeffs(model)
+    # L = cholesky(Sigma_u).L
+    # A0 = inv(L)
+    # A_plus = A0 * coeffs(model)
+    # return A0, A_plus
+    return _identify(B, Sigma_u, Recursive())
+end
+
+function _identify(
+    ::AbstractMatrix{<:Number}, 
+    ::AbstractMatrix{<:Number}, 
+    ::InternalInstrument
+)
+    error("Internal instruments can only be used to identify IRFs but not the full SVAR.")
+end
+function _identify(model::VAR, ::InternalInstrument)
+    require_fitted(model)
+    error("Internal instruments can only be used to identify IRFs but not the full SVAR.")
 end
 
 function identify!(model::SVAR, method::AbstractIdentificationMethod)
@@ -84,6 +109,7 @@ function fit_and_select!(
 
     var_best, ic_table = fit_and_select!(model.var, ic_function)
     model.var = var_best
+    model.p = var_best.p
     return identify!(model, identification_method), ic_table
 end
 
@@ -137,53 +163,121 @@ end
 # IMPULSE RESPONSE FUNCTIONS
 #-------------------------------------------------------------------------------
 
-function IRF(model::SVAR, max_horizon::Int)
-    require_fitted(model)
-    Phi0 = inv(model.A0)
-    irfs = _var_irf(coeffs(model.var), model.p, max_horizon)
-    for h=0:max_horizon
-        view(irfs, :, :, h+1) .= view(irfs, :, :, h+1) * Phi0 
-    end
-    varnames = names(get_input_data(model))
-    return IRF(irfs, varnames, model)
-end
+function _svar_irf(
+    A0::AbstractMatrix{<:Number}, 
+    A_plus::AbstractMatrix{<:Number},   # excludes any exogenous terms
+    p::Int, 
+    max_horizon::Int
+)
 
-function _identify_irfs(model::VAR, method::Recursive, max_horizon::Int)
-    require_fitted(model)
-    irfs = _var_irf(coeffs(model), model.p, max_horizon)
-    A0, _ = _identify(model, method)
     Phi0 = inv(A0)
-    for h = 0:max_horizon
-        view(irfs, :, :, h + 1) .= view(irfs, :, :, h + 1) * Phi0
-    end
+    B_plus = Phi0 * A_plus
+    irfs_var = _var_irf(B_plus, p, max_horizon)
+    irfs = mapslices(x -> x * Phi0, irfs_var; dims = [1, 2])
     return irfs
 end
 
+function IRF(model::SVAR, max_horizon::Int)
+    require_fitted(model)
+    # Phi0 = inv(model.A0)
+    # irfs = _var_irf(coeffs(model.var, true), model.p, max_horizon)
+    # for h=0:max_horizon
+    #     view(irfs, :, :, h+1) .= view(irfs, :, :, h+1) * Phi0 
+    # end
+    A0, A_plus = coeffs(model, true)
+    irfs = _svar_irf(A0, A_plus, model.p, max_horizon)
+    varnames = Symbol.(names(get_input_data(model)))
+    return IRF(irfs, varnames, model)
+end
+
+function _identify_irfs(
+    B::AbstractMatrix{<:Number},        # excludes deterministic components
+    Sigma_u::AbstractMatrix{<:Number}, 
+    p::Int,
+    ::Recursive, 
+    max_horizon::Int
+)
+
+    A0, A_plus = _identify(B, Sigma_u, Recursive())
+    return _svar_irf(A0, A_plus, p, max_horizon)
+end
+function _identify_irfs(model::VAR, method::Recursive, max_horizon::Int)
+    require_fitted(model)
+
+    B = coeffs(model, true)
+    Sigma_u = cov(model)
+    return _identify_irfs(B, Sigma_u, model.p, method, max_horizon)
+
+    # # irfs = _var_irf(coeffs(model, true), model.p, max_horizon)
+    # A0, A_plus = _identify(model, method)
+    # m = length(model.trend_exponents)
+    # A_plus = A_plus[:, (m+1):end]  # excluding deterministic terms
+    # # Phi0 = inv(A0)
+    # # for h = 0:max_horizon
+    # #     view(irfs, :, :, h + 1) .= view(irfs, :, :, h + 1) * Phi0
+    # # end
+    # return _svar_irf(A0, A_plus, model.p, max_horizon)
+    # return irfs
+end
+
+function _identify_irfs(
+    B::AbstractMatrix{<:Number},         # excludes deterministic components
+    Sigma_u::AbstractMatrix{<:Number}, 
+    p::Int, 
+    method::InternalInstrument, 
+    max_horizon::Int
+)
+
+    isa(method.instrument, Symbol) && error("Pass the model instead of the coefficient matrices if you want to specify the instrument by name.")
+    isa(method.normalising_variable, Symbol) && error("Pass the model instead of the coefficient matrices if you want to specify the normalising variable by name.")
+    idx_instrument = method.instrument
+    idx_normalising = method.normalising_variable
+
+    # internal instrument IRFs are cumputed as relative IRFs of the 
+    # Cholesky shock of the instrument variable on the outcome variable 
+    # over the Cholesky shock of the instrument variable on the normalising 
+    # variable and the pre-defined horizon
+    cholesky_irfs = _identify_irfs(B, Sigma_u, p, Recursive(), max_horizon)
+    normalising_factor = cholesky_irfs[idx_normalising, idx_instrument, method.normalising_horizon + 1]
+    cholesky_irfs ./= normalising_factor
+
+    K = size(cholesky_irfs, 1)
+    T = eltype(cholesky_irfs)
+    cholesky_irfs[:, filter(!=(idx_instrument), 1:K), :] .= T(NaN)
+    return cholesky_irfs
+end
 function _identify_irfs(model::VAR, method::InternalInstrument, max_horizon::Int)
     require_fitted(model)
     data = get_input_data(model)
     idx_instrument = _find_variable_idx(method.instrument, data)
     idx_normalising = _find_variable_idx(method.normalising_variable, data)
 
-    # internal instrument IRFs are cumputed as relative IRFs of the 
-    # Cholesky shock of the instrument variable on the outcome variable 
-    # over the Cholesky shock of the instrument variable on the normalising 
-    # variable and the pre-defined horizon
-    cholesky_irfs = _identify_irfs(model, Recursive(), max_horizon)
-    normalising_factor = cholesky_irfs[idx_normalising, idx_instrument, method.normalising_horizon]
-    cholesky_irfs ./= normalising_factor
+    method_tmp = InternalInstrument(idx_instrument, idx_normalising, method.normalising_horizon)
 
-    # we can only interpret the IRFs to the Cholesky shock of the instrument
-    K = size(data, 2)
-    T = eltype(cholesky_irfs)
-    cholesky_irfs[:, filter(!=(idx_instrument), 1:K), :] .= T(NaN)
+    B = coeffs(model, true)
+    Sigma_u = cov(model)
 
-    return cholesky_irfs
+    return _identify_irfs(B, Sigma_u, model.p, method_tmp, max_horizon)
+
+    # # internal instrument IRFs are cumputed as relative IRFs of the 
+    # # Cholesky shock of the instrument variable on the outcome variable 
+    # # over the Cholesky shock of the instrument variable on the normalising 
+    # # variable and the pre-defined horizon
+    # cholesky_irfs = _identify_irfs(model, Recursive(), max_horizon)
+    # normalising_factor = cholesky_irfs[idx_normalising, idx_instrument, method.normalising_horizon + 1]
+    # cholesky_irfs ./= normalising_factor
+    #
+    # # we can only interpret the IRFs to the Cholesky shock of the instrument
+    # K = size(data, 2)
+    # T = eltype(cholesky_irfs)
+    # cholesky_irfs[:, filter(!=(idx_instrument), 1:K), :] .= T(NaN)
+    #
+    # return cholesky_irfs
 end
 
 function IRF(model::VAR, method::AbstractIdentificationMethod, max_horizon::Int)
     irfs = _identify_irfs(model, method, max_horizon)
-    varnames = names(get_input_data(model))
+    varnames = Symbol.(names(get_input_data(model)))
     return IRF(irfs, varnames, model, method)
 end
 

@@ -173,6 +173,25 @@ function make_lag_matrix(Y::AbstractVecOrMat{<:Number}, nlag::Int)
     return make_lag_matrix!(X, Y)
 end
 
+# TODO: document
+# TODO: write official tests
+function make_lead_matrix!(X::AbstractMatrix{<:Number}, Y::AbstractVecOrMat{<:Number})
+    view(X, :, :) .= eltype(X)(NaN)
+    k = size(Y,2)
+    nlead = floor(Int, size(X, 2) / k)
+    for l = 1:nlead
+        @views X[1:(end-l), ((l-1)*k+1):(l*k)] .= Y[(l+1):end, :]
+    end
+    return X
+end
+function make_lead_matrix(Y::AbstractVecOrMat{<:Number}, nlead::Int)
+    r = size(Y, 1)
+    c = size(Y, 2)
+    T = eltype(Y) <: Int ? Float64 : eltype(Y)
+    X = zeros(T, r, c * nlead)
+    return make_lead_matrix!(X, Y)
+end
+
 """
     _make_trend!(v::AbstractVector, t::Int, trend_exponents::AbstractVector{<:Real})
 

@@ -66,10 +66,6 @@ function _identify(model::VAR, ::Recursive)
     is_fitted(model) || error("Reduced form model must first be estimated.")
     Sigma_u = cov(model)
     B = coeffs(model)
-    # L = cholesky(Sigma_u).L
-    # A0 = inv(L)
-    # A_plus = A0 * coeffs(model)
-    # return A0, A_plus
     return _identify(B, Sigma_u, Recursive())
 end
 
@@ -179,11 +175,6 @@ end
 
 function IRF(model::SVAR, max_horizon::Int)
     require_fitted(model)
-    # Phi0 = inv(model.A0)
-    # irfs = _var_irf(coeffs(model.var, true), model.p, max_horizon)
-    # for h=0:max_horizon
-    #     view(irfs, :, :, h+1) .= view(irfs, :, :, h+1) * Phi0 
-    # end
     A0, A_plus = coeffs(model, true)
     irfs = _svar_irf(A0, A_plus, model.p, max_horizon)
     varnames = Symbol.(names(get_input_data(model)))
@@ -207,17 +198,6 @@ function _identify_irfs(model::VAR, method::Recursive, max_horizon::Int)
     B = coeffs(model, true)
     Sigma_u = cov(model)
     return _identify_irfs(B, Sigma_u, model.p, method, max_horizon)
-
-    # # irfs = _var_irf(coeffs(model, true), model.p, max_horizon)
-    # A0, A_plus = _identify(model, method)
-    # m = length(model.trend_exponents)
-    # A_plus = A_plus[:, (m+1):end]  # excluding deterministic terms
-    # # Phi0 = inv(A0)
-    # # for h = 0:max_horizon
-    # #     view(irfs, :, :, h + 1) .= view(irfs, :, :, h + 1) * Phi0
-    # # end
-    # return _svar_irf(A0, A_plus, model.p, max_horizon)
-    # return irfs
 end
 
 function _identify_irfs(
@@ -258,21 +238,6 @@ function _identify_irfs(model::VAR, method::InternalInstrument, max_horizon::Int
     Sigma_u = cov(model)
 
     return _identify_irfs(B, Sigma_u, model.p, method_tmp, max_horizon)
-
-    # # internal instrument IRFs are cumputed as relative IRFs of the 
-    # # Cholesky shock of the instrument variable on the outcome variable 
-    # # over the Cholesky shock of the instrument variable on the normalising 
-    # # variable and the pre-defined horizon
-    # cholesky_irfs = _identify_irfs(model, Recursive(), max_horizon)
-    # normalising_factor = cholesky_irfs[idx_normalising, idx_instrument, method.normalising_horizon + 1]
-    # cholesky_irfs ./= normalising_factor
-    #
-    # # we can only interpret the IRFs to the Cholesky shock of the instrument
-    # K = size(data, 2)
-    # T = eltype(cholesky_irfs)
-    # cholesky_irfs[:, filter(!=(idx_instrument), 1:K), :] .= T(NaN)
-    #
-    # return cholesky_irfs
 end
 
 function IRF(model::VAR, method::AbstractIdentificationMethod, max_horizon::Int)

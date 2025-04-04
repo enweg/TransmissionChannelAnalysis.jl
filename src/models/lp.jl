@@ -1,39 +1,16 @@
 using DataFrames
 
-mutable struct LP <: Model
-    data::DataFrame # input data
-    treatment::Union{Symbol,Int}  # treatment variable in data
-    p::Int  # number of lags to include
-    horizons::AbstractVector{<:Int}  # horizon for LP
-    include_constant::Bool  # whether to include a constant
-
-    coeffs::AbstractArray{<:Number}  # estimated coefficients per horizon
-    Y::AbstractArray{<:Number}  # LHS  per horizon
-    X::AbstractMatrix{<:Number}  # RHS (same for each horizon)
-    U::AbstractArray{<:Number}  # Residuals per horizon
-    Yhat::AbstractArray{<:Number}  # Fitted values per horizon
-end
-
-function LP(
-    data::DataFrame,
-    treatment::Union{Symbol,Int},
-    p::Int,
-    horizons::Union{Int,AbstractVector{<:Int}};
-    include_constant::Bool=true
+function _create_LP_XY(
+    data::DataFrame, 
+    treatment::Int,
+    p::Int, 
+    horizons::AbstractVector{<:Int}, 
+    include_constant::Bool=true 
 )
-
-    if !isa(horizons, AbstractVector)
-        horizons = [horizons]
-    end
 
     type = eltype(data[:, 1])
     T, k = size(data)
-    n_horizons = length(horizons)
     idx_treatment = _find_variable_idx(treatment, data)
-
-    U = Array{type,3}(undef, 0, 0, 0)
-    Yhat = Array{type,3}(undef, 0, 0, 0)
-    coeffs = Array{type,3}(undef, 0, 0, 0)
 
     mat_data = type.(Matrix(data))
     mat_data_lag = make_lag_matrix(mat_data, p)
@@ -48,6 +25,42 @@ function LP(
     Y = Y[(p+1):end, :]
     Y = reshape(Y, T - p, k, :)
     Y = Y[:, :, horizons.+1]
+
+    return X, Y
+end
+
+mutable struct LP <: Model
+    data::DataFrame # input data
+    treatment::Union{Symbol,Int}  # treatment variable in data
+    p::Int  # number of lags to include
+    horizons::AbstractVector{<:Int}  # horizon for LP
+    include_constant::Bool  # whether to include a constant
+
+    coeffs::AbstractArray{<:Number}  # estimated coefficients per horizon
+    Y::AbstractArray{<:Number}  # LHS  per horizon
+    X::AbstractMatrix{<:Number}  # RHS (same for each horizon)
+    U::AbstractArray{<:Number}  # Residuals per horizon
+    Yhat::AbstractArray{<:Number}  # Fitted values per horizon
+end
+function LP(
+    data::DataFrame,
+    treatment::Union{Symbol,Int},
+    p::Int,
+    horizons::Union{Int,AbstractVector{<:Int}};
+    include_constant::Bool=true
+)
+
+    if !isa(horizons, AbstractVector)
+        horizons = [horizons]
+    end
+
+    type = eltype(data[:, 1])
+
+    U = Array{type,3}(undef, 0, 0, 0)
+    Yhat = Array{type,3}(undef, 0, 0, 0)
+    coeffs = Array{type,3}(undef, 0, 0, 0)
+
+    X, Y = _create_LP_XY(data, treatment, p, horizons, include_constant)
 
     return LP(data, treatment, p, horizons, include_constant, coeffs, Y, X, U, Yhat)
 end
@@ -104,6 +117,17 @@ function fit!(model::LP, ::Recursive)
 
     return model
 end
+
+# there is no good way to select the lag-length yet besides running an 
+# auxiliary VAR
+function fit_and_select!(model::LP, ::Recursive, ic_function::Function=aic)
+    trend_exponents = model.include_constant ? [0] : Real[]
+    model_var = VAR(get_input_data(model), model.p; trend_exponents=trend_exponents)
+    model_var, ic_table = fit_and_select!(model_var, ic_function)
+
+    model.p = model_var.p
+end
+
 
 #-------------------------------------------------------------------------------
 # IMPULSE RESPONSE FUNCTIONS

@@ -1,5 +1,8 @@
-using DataFrames
+using TransmissionChannelAnalysis
 using Test
+using DataFrames
+using LinearAlgebra
+using Random
 
 @testset "LP construction" begin
     k = 4
@@ -17,13 +20,73 @@ using Test
     # testing the rest of the matrices
     for (i, h) in enumerate(horizons)
         @test isequal(model.X[1:(end-h), 2], model.Y[1:(end-h), 2, i] .- h)
-        for j=1:p
+        for j = 1:p
             @test isequal(model.X[1:(end-h), ((j-1)*k+3):(j*k+2)], model.Y[1:(end-h), :, i] .- h .- j)
         end
     end
 end
 
+@testset "LP basic functions" begin
+    k = 4
+    T = 10
+    p = 2
 
+    data = DataFrame(randn(T, k), :auto)
 
+    treatment = 1
+    horizons = 0:3
+    model = LP(data, treatment, p, horizons; include_constant=true)
+    # Not fitted, so the following should throw errors
+    @test_throws "LP must first" coeffs(model)
+    @test_throws "LP must first" fitted(model)
+    @test_throws "LP must first" residuals(model)
+    # different observations by horizon
+    @test nobs(model) == T - p .- horizons
+    # implementation tests (do they error?)
+    get_dependent(model)
+    get_independent(model)
+    get_input_data(model)
 
+    # fitting model (by default Recursive)
+    fit!(model)
+    # should no-longer throw errors
+    coeffs(model)
+    fitted(model)
+    residuals(model)
+    # explicitly defining Recursive
+    fit!(model, Recursive())
+end
+
+@testset "LP coefficient estimate" begin
+    Random.seed!(6150533)
+    # Following assumes that SVAR is correctly implemented
+    k = 3
+    p = 2
+    T = 10_000
+    trend_exponents = [0]
+    A0 = LowerTriangular(randn(k, k))
+    S = diagm(sign.(diag(A0)))
+    A0 = A0 * S
+    B_plus = 0.2 * randn(k, k * p + length(trend_exponents))
+    A_plus = A0 * B_plus
+
+    model_svar = simulate(SVAR, T, A0, A_plus; trend_exponents=trend_exponents)
+    data = get_input_data(model_svar)
+
+    p_large = 200
+    model_svar = SVAR(data, p_large; trend_exponents=trend_exponents)
+    fit!(model_svar, Recursive())
+    max_horizon = 10
+    irfs_svar = IRF(model_svar, max_horizon)
+
+    for treatment = 1:k
+        model_lp = LP(data, treatment, p_large, 0:max_horizon; include_constant=true)
+        fit!(model_lp, Recursive())
+        irfs_lp = coeffs(model_lp, true)[:, treatment:treatment, :]
+
+        @test maximum(abs, irfs_lp - irfs_svar.irfs[:, treatment:treatment, :] ./ irfs_svar.irfs[treatment, treatment, 1]) < 1e-2
+        # for contemporaneous horizon they have to be the same
+        @test maximum(abs, irfs_lp[:, :, 1] - irfs_svar.irfs[:, treatment:treatment, 1] ./ irfs_svar.irfs[treatment, treatment, 1]) < sqrt(eps())
+    end
+end
 

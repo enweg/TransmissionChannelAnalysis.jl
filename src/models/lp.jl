@@ -33,7 +33,7 @@ function LP(
 
     U = Array{type,3}(undef, 0, 0, 0)
     Yhat = Array{type,3}(undef, 0, 0, 0)
-    beta = Array{type,3}(undef, 0, 0, 0)
+    coeffs = Array{type,3}(undef, 0, 0, 0)
 
     mat_data = type.(Matrix(data))
     mat_data_lag = make_lag_matrix(mat_data, p)
@@ -46,10 +46,65 @@ function LP(
     Y = make_lead_matrix(mat_data, max_horizon)
     Y = hcat(mat_data, Y)
     Y = Y[(p+1):end, :]
-    Y = reshape(Y, T-p, k, :)
-    Y = Y[:, :, horizons .+ 1]
+    Y = reshape(Y, T - p, k, :)
+    Y = Y[:, :, horizons.+1]
 
-    return LP(data, treatment, p, horizons, include_constant, beta, Y, X, U, Yhat)
+    return LP(data, treatment, p, horizons, include_constant, coeffs, Y, X, U, Yhat)
 end
 
+function coeffs(model::LP, exclude_deterministic::Bool=false)
+    require_fitted(model)
+    exclude_deterministic || return model.coeffs
 
+    return model.coeffs[:, (model.include_constant+1):end, :]
+end
+fitted(model::LP) = require_fitted(model) && model.Yhat
+residuals(model::LP) = require_fitted(model) && model.U
+nobs(model::LP) = size(model.data, 1) - model.p .- model.horizons
+get_dependent(model::LP) = model.Y
+get_independent(model::LP) = model.X
+get_input_data(model::LP) = model.data
+is_fitted(model::LP) = size(model.coeffs, 1) > 0
+is_structural(model::LP) = true  # we just assume that this is always the case
+
+#-------------------------------------------------------------------------------
+# INFORMATION CRITERIA
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# ESTIMATION FUNCTIONS
+# Recursive
+# LP-IV
+#-------------------------------------------------------------------------------
+
+# make this default because LP is anyways a recursive design
+function fit!(model::LP, method::AbstractIdentificationMethod=Recursive())
+    fit!(model, method)
+end
+function fit!(model::LP, ::Recursive)
+    type = eltype(model.X)
+    k = size(model.Y, 2)
+    num_coeffs = size(model.X, 2)
+    coeffs = Array{type,3}(undef, k, num_coeffs, length(model.horizons))
+    Yhat = fill(type(NaN), size(model.Y))
+    U = fill(type(NaN), size(model.Y))
+
+    for (i, h) in enumerate(model.horizons)
+        X = model.X[1:(end-h), :]
+        Y = model.Y[1:(end-h), :, i]
+        coeffs[:, :, i] .= Y' * X / (X' * X)
+
+        Yhat[1:(end-h), :, i] .= X * coeffs[:, :, i]'
+        U[1:(end-h), :, i] .= Y - Yhat[1:(end-h), :, i]
+    end
+
+    model.coeffs = coeffs
+    model.Yhat = Yhat
+    model.U = U
+
+    return model
+end
+
+#-------------------------------------------------------------------------------
+# IMPULSE RESPONSE FUNCTIONS
+#-------------------------------------------------------------------------------

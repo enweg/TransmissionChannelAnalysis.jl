@@ -44,3 +44,7 @@ end
 @testset "SVAR" begin
     include("./models/svar.jl")
 end
+
+@testset "LP" begin
+    include("./models/lp.jl")
+end

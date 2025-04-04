@@ -57,7 +57,7 @@ end
     fit!(model, Recursive())
 end
 
-@testset "LP coefficient estimate" begin
+@testset "LP coefficient + IRF estimate" begin
     Random.seed!(6150533)
     # Following assumes that SVAR is correctly implemented
     k = 3
@@ -81,12 +81,29 @@ end
 
     for treatment = 1:k
         model_lp = LP(data, treatment, p_large, 0:max_horizon; include_constant=true)
-        fit!(model_lp, Recursive())
-        irfs_lp = coeffs(model_lp, true)[:, treatment:treatment, :]
+        irfs_lp = TransmissionChannelAnalysis._identify_irfs(model_lp, Recursive(), max_horizon)
 
         @test maximum(abs, irfs_lp - irfs_svar.irfs[:, treatment:treatment, :] ./ irfs_svar.irfs[treatment, treatment, 1]) < 1e-2
         # for contemporaneous horizon they have to be the same
         @test maximum(abs, irfs_lp[:, :, 1] - irfs_svar.irfs[:, treatment:treatment, 1] ./ irfs_svar.irfs[treatment, treatment, 1]) < sqrt(eps())
+
+        # testing only sub-horizons
+        model_lp = LP(data, treatment, p_large, [0, 4, 8]; include_constant=true)
+        fit!(model_lp, Recursive())
+        irfs_lp = coeffs(model_lp, true)[:, treatment:treatment, :]
+
+        @test maximum(abs, irfs_lp[:, :, 1] - irfs_svar.irfs[:, treatment:treatment, 1] ./ irfs_svar.irfs[treatment, treatment, 1]) < sqrt(eps())
+
+        @test maximum(abs, irfs_lp[:, :, 2] - irfs_svar.irfs[:, treatment:treatment, model_lp.horizons[2]+1] ./ irfs_svar.irfs[treatment, treatment, 1]) < 1e-2
+
+        @test maximum(abs, irfs_lp[:, :, 3] - irfs_svar.irfs[:, treatment:treatment, model_lp.horizons[3]+1] ./ irfs_svar.irfs[treatment, treatment, 1]) < 1e-2
     end
+
+    # implementation test
+    treatment = 1
+    model_lp = LP(data, treatment, p_large, 0:max_horizon; include_constant=true)
+    IRF(model_lp, Recursive(), max_horizon)
+    model_lp = LP(data, treatment, p_large, [0, 3, 5]; include_constant=true)
+    @test_throws "LP horizons do not" IRF(model_lp, Recursive(), max_horizon)
 end
 

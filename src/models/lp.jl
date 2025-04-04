@@ -108,3 +108,17 @@ end
 #-------------------------------------------------------------------------------
 # IMPULSE RESPONSE FUNCTIONS
 #-------------------------------------------------------------------------------
+
+function _identify_irfs(model::LP, ::Recursive, max_horizon::Int)
+    model.horizons == 0:max_horizon || error("LP horizons do not match IRF horizons.")
+    is_fitted(model) || fit!(model, Recursive())
+
+    irfs = coeffs(model, true)[:, model.treatment:model.treatment, :]
+    return irfs
+end
+
+function IRF(model::LP, method::AbstractIdentificationMethod, max_horizon::Int)
+    irfs = _identify_irfs(model, method, max_horizon)
+    varnames = Symbol.(names(get_input_data(model)))
+    return IRF(irfs, varnames, model, method)
+end

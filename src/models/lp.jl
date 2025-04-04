@@ -82,10 +82,6 @@ is_fitted(model::LP) = size(model.coeffs, 1) > 0
 is_structural(model::LP) = true  # we just assume that this is always the case
 
 #-------------------------------------------------------------------------------
-# INFORMATION CRITERIA
-#-------------------------------------------------------------------------------
-
-#-------------------------------------------------------------------------------
 # ESTIMATION FUNCTIONS
 # Recursive
 # LP-IV

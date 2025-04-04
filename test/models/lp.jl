@@ -181,29 +181,21 @@ end
     irfs_lp = TransmissionChannelAnalysis._identify_irfs(model, method, max_horizon)
     irfs_lp = irfs_lp[5:end, :, :]
     @test maximum(abs, irfs_lp - irfs_true) < 1e-2
+
+    select!(data, r"Y")
+    data[!, :instrument] = shocks[1, :]
+    select!(data, :instrument, :Y1, :)
+
+    model = LP(data, :Y1, p, 0:max_horizon; include_constant=true)
+    method = ExternalInstrument([1]; normalising_horizon=1)
+    irfs_lp = TransmissionChannelAnalysis._identify_irfs(model, method, max_horizon)
+    # The Y1 irf is no-longer the same as SVAR IRF because Y1 is lead by 1
+    irfs_lp = irfs_lp[2:end, :, :]
+
+    irfs_true = TransmissionChannelAnalysis._svar_irf(A0, A_plus[:, (m+1):end], p, max_horizon)
+    irfs_true = irfs_true[1:end, 1:1, :] ./ irfs_true[1, 1, 2]
+
+    # Estimation is better judged as percentage error here. 
+    @test maximum(abs, (irfs_lp - irfs_true) ./ irfs_true) < 1e-2
 end
 
-
-# FIX: something goes wrong in the following
-# using a future normalisation variable
-# I think it doesn't work because I now also lead the original lagged terms ... 
-# Alternative solution: simply provide a normalising horizon to ExternalInstrument 
-# and manually lead the treatment column in model.X; also remove the end rows that 
-# will be NaNs. 
-select!(data, r"Y")
-data[!, :instrument] = shocks[1, :]
-select!(data, :instrument, :Y1, :)
-data[!, :Y1] .= TransmissionChannelAnalysis.make_lead_matrix(data.Y1, 1)
-data = data[1:(end-1), :]
-
-model = LP(data, :Y1, p, 0:max_horizon; include_constant=true)
-method = ExternalInstrument([1])
-irfs_lp = TransmissionChannelAnalysis._identify_irfs(model, method, max_horizon)
-# The Y1 irf is no-longer the same as SVAR IRF because Y1 is lead by 1
-irfs_lp = irfs_lp[3:end, :, :]
-
-
-irfs_true = TransmissionChannelAnalysis._svar_irf(A0, A_plus[:, (m+1):end], p, max_horizon)
-irfs_true = irfs_true[1:end, 1:1, :] ./ irfs_true[1, 1, 2]
-
-irfs_lp - irfs_true

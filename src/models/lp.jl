@@ -144,11 +144,22 @@ function fit!(model::LP, method::ExternalInstrument)
     Z = model.X[:, idxs_instruments.+m]
     # Now exclude them from X
     X = model.X[:, filter(x -> !(x in idxs_instruments .+ m), 1:size(model.X, 2))]
-    model.X = X
     # the treatment index also changes
     # since treatment is always the last contemporanous variable 
     # all we need to know is how many instruments we remove from that block
     model.treatment = idx_treatment - length(idxs_instruments)
+
+    if method.normalising_horizon > 0
+        # lead the treatment column in X to adjust for which horizon 
+        # the unit effect normalisation applies to
+        nlead = method.normalising_horizon
+        X[:, model.treatment+m] .= make_lead_matrix(X[:, model.treatment+m], nlead)
+        # remove NaNs at end of data
+        X = X[1:(end-nlead), :]
+        model.Y = model.Y[1:(end-nlead), :, :]
+        Z = Z[1:(end-nlead), :]
+    end
+    model.X = X
 
     # Adding all other exogenous variables to Z
     # these are all variables that are not the treatment variable

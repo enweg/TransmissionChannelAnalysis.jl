@@ -40,11 +40,14 @@ end
 # EXTERNAL INTSTRUMENT IDENTIFICATION
 #-------------------------------------------------------------------------------
 
-# TODO: allow for other normalisation horizons than contemporaneous 
-# this is better for news shocks
-# - technically speaking this is already possible. The user just 
-# needs to manually lead the treatment variable before providing 
-# it to LP
 struct ExternalInstrument <: AbstractIdentificationMethod
     instruments::Union{AbstractVector{<:Symbol}, AbstractVector{<:Int}}
+    normalising_horizon::Int
+end
+function ExternalInstrument(
+    instrument::Union{AbstractVector{<:Symbol}, AbstractVector{<:Int}}; 
+    normalising_horizon::Int=0
+)
+
+    return ExternalInstrument(instrument, normalising_horizon)
 end

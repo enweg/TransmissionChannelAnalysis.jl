@@ -2,11 +2,11 @@ using LinearAlgebra
 
 abstract type AbstractIdentificationMethod end
 
-function _identify(::M, ::I) where {M<:Model, I<:AbstractIdentificationMethod} 
+function _identify(::M, ::I) where {M<:Model,I<:AbstractIdentificationMethod}
     error("_identify is not implemented for model $M and method $I.")
 end
 
-function _identify_irfs(::M, ::I) where {M<:Model, I<:AbstractIdentificationMethod}
+function _identify_irfs(::M, ::I) where {M<:Model,I<:AbstractIdentificationMethod}
     error("_identify_irfs is not implemented for model $M and method $I.")
 end
 
@@ -41,13 +41,27 @@ end
 #-------------------------------------------------------------------------------
 
 struct ExternalInstrument <: AbstractIdentificationMethod
-    instruments::Union{AbstractVector{<:Symbol}, AbstractVector{<:Int}}
+    instruments::Union{AbstractVector{<:Symbol},AbstractVector{<:Int}}
     normalising_horizon::Int
 end
 function ExternalInstrument(
-    instrument::Union{AbstractVector{<:Symbol}, AbstractVector{<:Int}}; 
+    instruments::Union{Symbol,Int,AbstractVector{<:Symbol},AbstractVector{<:Int}};
     normalising_horizon::Int=0
 )
 
-    return ExternalInstrument(instrument, normalising_horizon)
+    if !isa(instruments, AbstractVector)
+        instruments = [instruments]
+    end
+
+    return ExternalInstrument(instruments, normalising_horizon)
+end
+
+function Base.show(io::IO, ::MIME"text/plain", x::ExternalInstrument)
+    s = """
+        External Instrument Identificaton Method 
+        ========================================
+        Instruments: $(x.instruments)
+        Unit effect normalisation horizon: $(x.normalising_horizon)
+        """
+    println(io, s)
 end

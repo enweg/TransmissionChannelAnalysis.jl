@@ -81,6 +81,20 @@ get_input_data(model::LP) = model.data
 is_fitted(model::LP) = size(model.coeffs, 1) > 0
 is_structural(model::LP) = true  # we just assume that this is always the case
 
+function Base.show(io::IO, ::MIME"text/plain", x::LP)
+    treatment = isa(x.treatment, Int) ? names(x.data)[x.treatment] : x.treatment
+    s = """
+        Local Projection
+        ================
+        variables: $(join(names(x.data), ", "))
+        treatment variable: $(treatment)
+        p: $(x.p)
+        constant: $(x.include_constant)
+        horizons: $(x.horizons)
+        """
+    println(io, s)
+end
+
 #-------------------------------------------------------------------------------
 # ESTIMATION FUNCTIONS
 # Recursive

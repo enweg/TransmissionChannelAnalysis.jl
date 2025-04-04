@@ -107,3 +107,33 @@ end
     @test_throws "LP horizons do not" IRF(model_lp, Recursive(), max_horizon)
 end
 
+@testset "LP Information Critaria" begin
+    Random.seed!(6150533)
+    # Following assumes that SVAR is correctly implemented
+    k = 3
+    p = 2
+    T = 10_000
+    trend_exponents = [0]
+    A0 = LowerTriangular(randn(k, k))
+    S = diagm(sign.(diag(A0)))
+    A0 = A0 * S
+    B_plus = 0.2 * randn(k, k * p + length(trend_exponents))
+    A_plus = A0 * B_plus
+
+    model_svar = simulate(SVAR, T, A0, A_plus; trend_exponents=trend_exponents)
+    data = get_input_data(model_svar)
+
+    p_max = 10
+    model_lp = LP(data, 1, p_max, 0:10; include_constant=true)
+    model_best, ic_table = fit_and_select!(model_lp, Recursive(), aic)
+    @test model_best.p == 2
+    model_lp = LP(data, 1, p_max, 0:10; include_constant=true)
+    model_best, ic_table = fit_and_select!(model_lp, Recursive(), sic)
+    @test model_best.p == 2
+    model_lp = LP(data, 1, p_max, 0:10; include_constant=true)
+    model_best, ic_table = fit_and_select!(model_lp, Recursive(), bic)
+    @test model_best.p == 2
+    model_lp = LP(data, 1, p_max, 0:10; include_constant=true)
+    model_best, ic_table = fit_and_select!(model_lp, Recursive(), hqc)
+    @test model_best.p == 2
+end

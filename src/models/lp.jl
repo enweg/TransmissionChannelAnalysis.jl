@@ -124,8 +124,14 @@ function fit_and_select!(model::LP, ::Recursive, ic_function::Function=aic)
     trend_exponents = model.include_constant ? [0] : Real[]
     model_var = VAR(get_input_data(model), model.p; trend_exponents=trend_exponents)
     model_var, ic_table = fit_and_select!(model_var, ic_function)
-
-    model.p = model_var.p
+    model_best = LP(
+        get_input_data(model), 
+        model.treatment, 
+        model_var.p, 
+        model.horizons; 
+        include_constant=model.include_constant
+    )
+    return model_best, ic_table
 end
 
 

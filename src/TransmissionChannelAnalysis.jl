@@ -27,7 +27,8 @@ export make_companion_matrix, spectral_radius
 include("./models/model.jl")
 export Model
 include("./models/identification.jl")
-export AbstractIdentificationMethod, Recursive, InternalInstrument
+export AbstractIdentificationMethod, Recursive
+export InternalInstrument, ExternalInstrument
 include("./models/tools.jl")
 export IRF
 include("./models/var.jl")

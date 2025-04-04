@@ -225,5 +225,5 @@ end
 
 function _find_variable_idx(variable::Union{Symbol, Int}, data::DataFrame)
     isa(variable, Int) && return variable
-    return findfirst(==(variable), names(data))
+    return findfirst(==(variable), Symbol.(names(data)))
 end

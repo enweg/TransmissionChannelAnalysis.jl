@@ -1,11 +1,11 @@
 using DataFrames
 
 function _create_LP_XY(
-    data::DataFrame, 
+    data::DataFrame,
     treatment::Int,
-    p::Int, 
-    horizons::AbstractVector{<:Int}, 
-    include_constant::Bool=true 
+    p::Int,
+    horizons::AbstractVector{<:Int},
+    include_constant::Bool=true
 )
 
     type = eltype(data[:, 1])
@@ -60,7 +60,8 @@ function LP(
     Yhat = Array{type,3}(undef, 0, 0, 0)
     coeffs = Array{type,3}(undef, 0, 0, 0)
 
-    X, Y = _create_LP_XY(data, treatment, p, horizons, include_constant)
+    idx_treatment = _find_variable_idx(treatment, data)
+    X, Y = _create_LP_XY(data, idx_treatment, p, horizons, include_constant)
 
     return LP(data, treatment, p, horizons, include_constant, coeffs, Y, X, U, Yhat)
 end
@@ -118,6 +119,65 @@ function fit!(model::LP, ::Recursive)
     return model
 end
 
+function _2sls(
+    X::AbstractMatrix{<:Number},
+    Y::AbstractMatrix{<:Number},
+    Z::AbstractMatrix{<:Number}
+)
+
+    X_hat = Z * ((Z' * Z) \ (Z' * X))
+    return (X_hat' * X_hat) \ (X_hat' * Y)
+end
+# Enforcing that instrument are ordered before treatment 
+# This makes it easy to get Zt because we can just extract it from the 
+# contemporaneous block in Xt
+# Current implementation allows for that some contemporaneous controls are 
+# not used as instruments for the treatment
+function fit!(model::LP, method::ExternalInstrument)
+    idxs_instruments = _find_variable_idx.(method.instruments, [model.data])
+    idx_treatment = _find_variable_idx(model.treatment, model.data)
+    all(idxs_instruments .< idx_treatment) || error("Instruments must come before treatment variable in data.")
+
+    m = model.include_constant
+    # X = [constant contemporaneous lags]
+    # Z can be extracted from contemporaneous
+    Z = model.X[:, idxs_instruments.+m]
+    # Now exclude them from X
+    X = model.X[:, filter(x -> !(x in idxs_instruments .+ m), 1:size(model.X, 2))]
+    model.X = X
+    # the treatment index also changes
+    # since treatment is always the last contemporanous variable 
+    # all we need to know is how many instruments we remove from that block
+    model.treatment = idx_treatment - length(idxs_instruments)
+
+    # Adding all other exogenous variables to Z
+    # these are all variables that are not the treatment variable
+    Z = hcat(Z, X[:, filter(!=(model.treatment + m), 1:size(X, 2))])
+
+    type = eltype(model.X)
+    k = size(model.Y, 2)
+    num_coeffs = size(model.X, 2)
+    coeffs = Array{type,3}(undef, k, num_coeffs, length(model.horizons))
+    Yhat = fill(type(NaN), size(model.Y))
+    U = fill(type(NaN), size(model.Y))
+
+    for (i, h) in enumerate(model.horizons)
+        X = model.X[1:(end-h), :]
+        Y = model.Y[1:(end-h), :, i]
+        Zi = Z[1:(end-h), :]
+        coeffs[:, :, i] .= _2sls(X, Y, Zi)'
+
+        Yhat[1:(end-h), :, i] .= X * coeffs[:, :, i]'
+        U[1:(end-h), :, i] .= Y - Yhat[1:(end-h), :, i]
+    end
+
+    model.coeffs = coeffs
+    model.Yhat = Yhat
+    model.U = U
+
+    return model
+end
+
 # there is no good way to select the lag-length yet besides running an 
 # auxiliary VAR
 function fit_and_select!(model::LP, ::Recursive, ic_function::Function=aic)
@@ -125,10 +185,10 @@ function fit_and_select!(model::LP, ::Recursive, ic_function::Function=aic)
     model_var = VAR(get_input_data(model), model.p; trend_exponents=trend_exponents)
     model_var, ic_table = fit_and_select!(model_var, ic_function)
     model_best = LP(
-        get_input_data(model), 
-        model.treatment, 
-        model_var.p, 
-        model.horizons; 
+        get_input_data(model),
+        model.treatment,
+        model_var.p,
+        model.horizons;
         include_constant=model.include_constant
     )
     return model_best, ic_table
@@ -147,8 +207,17 @@ function _identify_irfs(model::LP, ::Recursive, max_horizon::Int)
     return irfs
 end
 
+function _identify_irfs(model::LP, method::ExternalInstrument, max_horizon::Int)
+    model.horizons == 0:max_horizon || error("LP horizons do not match IRF horizons.")
+    is_fitted(model) || fit!(model, method)
+
+    irfs = coeffs(model, true)[:, model.treatment:model.treatment, :]
+    return irfs
+end
+
 function IRF(model::LP, method::AbstractIdentificationMethod, max_horizon::Int)
     irfs = _identify_irfs(model, method, max_horizon)
     varnames = Symbol.(names(get_input_data(model)))
     return IRF(irfs, varnames, model, method)
 end
+

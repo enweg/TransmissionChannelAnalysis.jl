@@ -36,6 +36,17 @@ function InternalInstrument(
     return InternalInstrument(instrument, normalising_variable, normalising_horizon)
 end
 
+function Base.show(io::IO, ::MIME"text/plain", x::InternalInstrument)
+    s = """
+        Internal Instrument Identificaton Method 
+        ========================================
+        Instrument: $(x.instrument)
+        Unit effect normalisation horizon: $(x.normalising_horizon)
+        Unit effect normalising variable: $(x.normalising_variable)
+        """
+    println(io, s)
+end
+
 #-------------------------------------------------------------------------------
 # EXTERNAL INTSTRUMENT IDENTIFICATION
 #-------------------------------------------------------------------------------

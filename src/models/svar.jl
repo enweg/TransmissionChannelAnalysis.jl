@@ -47,6 +47,21 @@ hqc(model::SVAR) = require_fitted(model) && hqc(model.var)
 sic(model::SVAR) = require_fitted(model) && sic(model.var)
 bic(model::SVAR) = require_fitted(model) && bic(model.var)
 
+function Base.show(io::IO, ::MIME"text/plain", x::SVAR)
+    varnames = names(get_input_data(x))
+    constant = 0 in x.trend_exponents
+    trends = ["t^$i" for i in filter(!=(0), x.trend_exponents)]
+    s = """
+        Structural Vector Autoregression
+        ================================
+        variables: $(join(varnames, ", "))
+        p: $(x.p)
+        constant: $(constant)
+        trends: $(join(trends, ", "))
+        fitted: $(is_fitted(x))
+        """
+    println(io, s)
+end
 #-------------------------------------------------------------------------------
 # ESTIMATION AND IDENTICATION FUNCTIONS
 #-------------------------------------------------------------------------------

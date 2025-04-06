@@ -111,6 +111,22 @@ get_input_data(model::VAR) = model.input_data
 is_fitted(model::VAR) = size(model.Yhat, 1) >= 1
 is_structural(model::VAR) = false
 
+function Base.show(io::IO, ::MIME"text/plain", x::VAR)
+    varnames = names(get_input_data(x))
+    constant = 0 in x.trend_exponents
+    trends = ["t^$i" for i in filter(!=(0), x.trend_exponents)]
+    s = """
+        Vector Autoregression
+        =====================
+        variables: $(join(varnames, ", "))
+        p: $(x.p)
+        constant: $(constant)
+        trends: $(join(trends, ", "))
+        fitted: $(is_fitted(x))
+        """
+    println(io, s)
+end
+
 #-------------------------------------------------------------------------------
 # CHECKING MODEL ASSUMPTIONS
 #-------------------------------------------------------------------------------

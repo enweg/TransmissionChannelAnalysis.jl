@@ -48,6 +48,15 @@ function IRF(::M, ::Int) where {M<:Model}
     error("$(M) does not implement IRF.")
 end
 
-function IRF(::M, ::I, ::Int) where {M<:Model,I<:AbstractIdentificationMethod}
-    error("$(M) does not implement IRF with identification method $(I).")
+"""
+    IRF(model::Model, method::AbstractIdentificationMethod, max_horizon::Int)
+
+Returns the impulse response functions (IRFs) identified from `model`
+using the identification method `method`, up to the specified
+`max_horizon`.
+
+Must return an object of type `IRF`. 
+"""
+function IRF(::M, ::I, max_horizon::Int) where {M<:Model,I<:AbstractIdentificationMethod}
+    error("IRFs cannot be identified from $(M) using identification method $(I)")
 end

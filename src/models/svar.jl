@@ -66,6 +66,20 @@ end
 # ESTIMATION AND IDENTICATION FUNCTIONS
 #-------------------------------------------------------------------------------
 
+"""
+    _identify(model::SVAR, method::AbstractIdentificationMethod)
+
+Internal method for identifying structural matrices in SVAR models.
+
+Must return `A0` and `A_plus` matrices. Should not be implemented by
+models that do not use structural matrices (e.g., local projections).
+
+For more details, see the `SVAR` documentation.
+"""
+function _identify(::SVAR, ::I) where {I<:AbstractIdentificationMethod}
+    error("_identify is not implemented for SVAR and method $I.")
+end
+
 function _identify(
     B::AbstractMatrix{<:Number}, 
     Sigma_u::AbstractMatrix{<:Number}, 
@@ -194,6 +208,20 @@ function IRF(model::SVAR, max_horizon::Int)
     irfs = _svar_irf(A0, A_plus, model.p, max_horizon)
     varnames = Symbol.(names(get_input_data(model)))
     return IRF(irfs, varnames, model)
+end
+
+"""
+    _identify_irfs(model::VAR, method::I, max_horizon::Int)
+        where {I<:AbstractIdentificationMethod}
+
+Internal method to directly identify IRFs from a `VAR` model using the 
+identification method `method`.
+
+Must return a 3-dimensional array with dimensions (variables, shocks,
+horizons) where the maximum horizon is given by `max_horizon`. 
+"""
+function _identify_irfs(::VAR, ::I, max_horizon::Int) where {I<:AbstractIdentificationMethod}
+    error("_identify_irfs is not implemented for model VAR and method $I.")
 end
 
 function _identify_irfs(

@@ -135,12 +135,58 @@ end
 #-------------------------------------------------------------------------------
 # EXTERNAL INTSTRUMENT IDENTIFICATION
 #-------------------------------------------------------------------------------
+"""
+    ExternalInstrument <: AbstractIdentificationMethod
 
+Identification method using external instruments for structural shock
+identification in time series models.
+
+External instruments serve as proxies for structural shocks and are not
+included in the estimation model (e.g., a VAR), but are used in
+instrumental variable estimators such as two-stage least squares (2SLS).
+
+This method identifies *relative* structural impulse response functions
+(IRFs), meaning that the scale of the identified shock is normalised.
+Specifically, the IRF is scaled such that the response of the treatment
+variable equals one at a given normalising horizon.
+
+This approach also generalises to the Local Projections Instrumental
+Variables (LP-IV) framework and supports the use of multiple instruments.
+
+The method is based on:
+
+Stock, J. H., & Watson, M. W. (2018). Identification and Estimation of
+Dynamic Causal Effects in Macroeconomics Using External Instruments.
+*The Economic Journal*, 128(610), 917–948.
+https://doi.org/10.1111/ecoj.12593
+
+# Fields
+- `treatment::Union{Symbol, Int}`: the variable used to normalise the IRF
+- `instruments::Union{AbstractVector{<:Symbol}, AbstractVector{<:Int}}`:
+  a vector of variables used as external instruments
+- `normalising_horizon::Int`: the horizon at which the IRF of the treatment
+  variable is set to one
+
+"""
 struct ExternalInstrument <: AbstractIdentificationMethod
     treatment::Union{Symbol, Int}
     instruments::Union{AbstractVector{<:Symbol},AbstractVector{<:Int}}
     normalising_horizon::Int
 end
+
+"""
+    ExternalInstrument(treatment::Union{Symbol, Int},
+                       instruments::Union{Symbol, Int,
+                                          AbstractVector{<:Symbol},
+                                          AbstractVector{<:Int}};
+                       normalising_horizon::Int=0)
+
+Constructs an `ExternalInstrument` identification method using a specified
+`treatment` variable, one or more external instruments, and an optional
+normalisation horizon (default is 0).
+
+If a single instrument is provided, it is automatically wrapped in a vector.
+"""
 function ExternalInstrument(
     treatment::Union{Symbol, Int},
     instruments::Union{Symbol,Int,AbstractVector{<:Symbol},AbstractVector{<:Int}};

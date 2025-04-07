@@ -164,7 +164,7 @@ end
 
     treatment = :Y1
     model = LP(data, :Y1, p, 0:max_horizon; include_constant=true)
-    method = ExternalInstrument([1])
+    method = ExternalInstrument(treatment, [1])
     irfs_lp = TransmissionChannelAnalysis._identify_irfs(model, method, max_horizon)
     irfs_lp = irfs_lp[2:end, :, :]
     @test maximum(abs, irfs_lp - irfs_true) < 1e-2
@@ -177,7 +177,7 @@ end
 
     treatment = :Y1
     model = LP(data, :Y1, p, 0:max_horizon; include_constant=true)
-    method = ExternalInstrument(1:4)
+    method = ExternalInstrument(treatment, 1:4)
     irfs_lp = TransmissionChannelAnalysis._identify_irfs(model, method, max_horizon)
     irfs_lp = irfs_lp[5:end, :, :]
     @test maximum(abs, irfs_lp - irfs_true) < 1e-2
@@ -187,7 +187,7 @@ end
     select!(data, :instrument, :Y1, :)
 
     model = LP(data, :Y1, p, 0:max_horizon; include_constant=true)
-    method = ExternalInstrument([1]; normalising_horizon=1)
+    method = ExternalInstrument(treatment, [1]; normalising_horizon=1)
     irfs_lp = TransmissionChannelAnalysis._identify_irfs(model, method, max_horizon)
     # The Y1 irf is no-longer the same as SVAR IRF because Y1 is lead by 1
     irfs_lp = irfs_lp[2:end, :, :]

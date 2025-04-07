@@ -146,7 +146,9 @@ end
 function fit!(model::LP, method::ExternalInstrument)
     idxs_instruments = _find_variable_idx.(method.instruments, [model.data])
     idx_treatment = _find_variable_idx(model.treatment, model.data)
+    idx_treatment_instrument = _find_variable_idx(method.treatment, model.data)
     all(idxs_instruments .< idx_treatment) || error("Instruments must come before treatment variable in data.")
+    idx_treatment == idx_treatment_instrument || error("LP and ExternalInstrument treatment variable differ.")
 
     m = model.include_constant
     # X = [constant contemporaneous lags]

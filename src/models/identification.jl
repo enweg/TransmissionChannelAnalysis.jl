@@ -137,10 +137,12 @@ end
 #-------------------------------------------------------------------------------
 
 struct ExternalInstrument <: AbstractIdentificationMethod
+    treatment::Union{Symbol, Int}
     instruments::Union{AbstractVector{<:Symbol},AbstractVector{<:Int}}
     normalising_horizon::Int
 end
 function ExternalInstrument(
+    treatment::Union{Symbol, Int},
     instruments::Union{Symbol,Int,AbstractVector{<:Symbol},AbstractVector{<:Int}};
     normalising_horizon::Int=0
 )
@@ -149,13 +151,14 @@ function ExternalInstrument(
         instruments = [instruments]
     end
 
-    return ExternalInstrument(instruments, normalising_horizon)
+    return ExternalInstrument(treatment, instruments, normalising_horizon)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", x::ExternalInstrument)
     s = """
         External Instrument Identificaton Method 
         ========================================
+        Treatment: $(x.treatment)
         Instruments: $(x.instruments)
         Unit effect normalisation horizon: $(x.normalising_horizon)
         """

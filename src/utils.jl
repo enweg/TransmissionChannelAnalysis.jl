@@ -18,7 +18,7 @@ to its corresponding systems form (using variables `x`).
 # Notes
 - The contemporaneous period is denoted is period `0`.
 """
-map_y_to_x(i::Int, t::Int, K::Int, order::AbstractVector{<:Int}) = K*t + findfirst(==(i), order)
+map_y_to_x(i::Int, t::Int, K::Int, order::AbstractVector{<:Int}) = K * t + findfirst(==(i), order)
 
 """
     map_y_to_x(s_y::String, order::AbstractVector{<:Int}) -> String
@@ -44,13 +44,13 @@ map_y_to_x(s_y, order)  # Returns: "x8 & x4"
 ```
 """
 function map_y_to_x(s_y::String, order::AbstractVector{<:Int})
-  s_x = s_y
-  for m in eachmatch(r"y_{(\d+),\s*(\d+)}", s_y)
-    i, t = parse.(Int64, m.captures)
-    xi = map_y_to_x(i, t, length(order), order)
-    s_x = replace(s_x, m.match => "x$(xi)")
-  end
-  return s_x
+    s_x = s_y
+    for m in eachmatch(r"y_{(\d+),\s*(\d+)}", s_y)
+        i, t = parse.(Int64, m.captures)
+        xi = map_y_to_x(i, t, length(order), order)
+        s_x = replace(s_x, m.match => "x$(xi)")
+    end
+    return s_x
 end
 
 """
@@ -70,10 +70,10 @@ transmission condition form (using variables `y`). This function is the reverse 
 
 """
 function map_x_to_y(xi::Int, order::AbstractVector{<:Int})
-  K = length(order)
-  t = floor(Int, (xi-1) / K)
-  i = xi - t*K  # under the current transmission matrix
-  return order[i], t  # under the original order
+    K = length(order)
+    t = floor(Int, (xi - 1) / K)
+    i = xi - t * K  # under the current transmission matrix
+    return order[i], t  # under the original order
 end
 
 """
@@ -100,13 +100,13 @@ map_x_to_y(s_x, order)  # Returns: "y_{1, 2} + y_{3, 1}"
 ```
 """
 function map_x_to_y(s_x::String, order::AbstractVector{<:Int})
-  s_y = s_x
-  for m in eachmatch(r"x(\d+)", s_x)
-    xi = parse(Int64, m.captures[1])
-    i, t = map_x_to_y(xi, order)
-    s_y = replace(s_y, m.match => "y_{$i,$t}")
-  end
-  return s_y
+    s_y = s_x
+    for m in eachmatch(r"x(\d+)", s_x)
+        xi = parse(Int64, m.captures[1])
+        i, t = map_x_to_y(xi, order)
+        s_y = replace(s_y, m.match => "y_{$i,$t}")
+    end
+    return s_y
 end
 
 """
@@ -148,9 +148,19 @@ includes some "xi & !xi". This would result in the entire Boolean statement to
 be false, and thus in the effect of this terms to be zero. 
 """
 function set_remove_contradictions(b::Bool)
-  REMOVE_CONTRADICTIONS[] = b
+    REMOVE_CONTRADICTIONS[] = b
 end
 
-
+function ql(A::AbstractMatrix)
+    k = size(A, 2)
+    P = permmatrix(collect(k:-1:1))
+    qr_decomposition = qr(A * P)
+    L = P * qr_decomposition.R * P
+    Q = qr_decomposition.Q * P
+    S = diagm(sign.(diag(L)))
+    L = S*L
+    Q = Q * S
+    return Q, L
+end
 
 

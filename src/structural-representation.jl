@@ -55,6 +55,10 @@ function make_Omega(
     K = size(Sigma, 1)
     L, D = make_L_D(T * Sigma * T')
     Qt = L * T * Phi0
+
+    # Early return if no MA coefficients exist
+    isempty(Psis) && return kron(I(max_horizon + 1), D * Qt)
+
     Psis = [D * L * T * Psi * Phi0 for Psi in Psis]
     row_block = hcat(reduce(hcat, reverse(Psis)), D * Qt)
     Omega = zeros(K * (max_horizon + 1), K * (max_horizon + 1))
@@ -95,11 +99,11 @@ representation ``x = Bx + Omega\\varepsilon``.
 
 """
 function make_systems_form(
-    Phi0::AbstractMatrix, 
-    As::Vector{<:AbstractMatrix}, 
-    Psis::Vector{<:AbstractMatrix}, 
-    Sigma::AbstractMatrix{<:Real}, 
-    order::AbstractVector{<:Int}, 
+    Phi0::AbstractMatrix,
+    As::Vector{<:AbstractMatrix},
+    Psis::Vector{<:AbstractMatrix},
+    Sigma::AbstractMatrix{<:Real},
+    order::AbstractVector{<:Int},
     max_horizon::Int
 )
 

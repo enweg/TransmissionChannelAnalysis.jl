@@ -132,4 +132,39 @@ end
 end
 
 
+@testset "Empty Psi" begin
+    # structural model
+    A0 = randn(3, 3)
+    A0inv = inv(A0)
+    As = [randn(3, 3) for _ in 1:2]
+    Psis = Matrix[]
+    Sigma = A0inv * A0inv'
 
+    L, D = TransmissionChannelAnalysis.make_L_D(Sigma)
+    O = zeros(3, 3)
+    Q = A0 * inv(L)
+
+    B = [
+        (I - D*L) O O O;
+        D*Q'*As[1] (I - D*L) O O;
+        D*Q'*As[2] D*Q'*As[1] (I - D*L) O;
+        O D*Q'*As[2] D*Q'*As[1] (I - D*L);
+    ]
+
+    Omega = [
+        D*Q' O O O;
+        O D*Q' O O;
+        O O D*Q' O;
+        O O O D*Q'
+    ]
+
+    # reduced form model
+    As = [A0inv * A for A in As]
+    Psis = Matrix[]
+
+    # testing
+    Omega_test = TransmissionChannelAnalysis.make_Omega(A0inv, Psis, Sigma, 1:3, 3)
+    @test maximum(abs, Omega_test - Omega) < sqrt(eps())
+    Omega_test = TransmissionChannelAnalysis.make_Omega(A0inv, Psis, Sigma, 1:3, 1)
+    @test maximum(abs, Omega_test - Omega[1:6, 1:6]) < sqrt(eps())
+end

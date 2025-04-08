@@ -252,3 +252,28 @@ end
     irfs_manual = cat(irfs_manual...; dims=3)
     @test maximum(abs, irf.irfs - irfs_manual) < sqrt(eps())
 end
+
+@testset "VAR transmission implementation" begin
+    # This is only a implementation test. All underlying functions 
+    # have previously been tested. 
+
+    k = 3
+    p = 2
+    T = 10_000
+    trend_exponents = [0]
+    B = 0.2 * randn(k, k*p + length(trend_exponents))
+
+    model = simulate(VAR, T, B; trend_exponents=trend_exponents)
+    fit!(model)
+
+    transmission_order = [3, 1, 2]
+    q = make_condition("!y_{1,0} & !y_{1,1}", transmission_order)
+    transmission_effects = transmission(2, model, Recursive(), q, transmission_order, 3)
+
+    # Obviously there is no valid instrument here, but we check the correctness 
+    # of the instrument estimation elsewhere. Here we really just care about 
+    # whether the functions run without error. Correctness, again, has been 
+    # shown elsewhere. 
+    method = InternalInstrument(2)
+    transmission_effects = transmission(1, model, method, q, transmission_order, 3)
+end

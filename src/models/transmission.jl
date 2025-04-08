@@ -48,3 +48,84 @@ function transmission(
     return _irf_vec_to_array(transmission_effects, k, order)
 end
 
+function transmission(
+    from::Int,
+    model::VAR,
+    method::Recursive,
+    q::Q,
+    order::AbstractVector{<:Int},
+    max_horizon::Int
+)
+
+    require_fitted(model)
+    k = size(get_input_data(model), 2)
+    k == length(order) || error("length(order) != k")
+
+    model_svar = identify(model, method)
+    return transmission(from, model_svar, q, order, max_horizon)
+end
+
+function transmission(
+    from::Int,
+    model::VAR,
+    method::InternalInstrument,
+    q::Q,
+    order::AbstractVector{<:Int},
+    max_horizon::Int
+)
+
+
+    require_fitted(model)
+    k = size(get_input_data(model), 2)
+    k == length(order) || error("length(order) != k")
+    from == 1 || error("Internal Instruments only identify a single shock. `from` must thus be equal to `1`.")
+
+    # TODO: should we remove the instrument from the irfs? 
+    irfs = _identify_irfs(model, method, max_horizon)
+    # re-ordering variables
+    irfs = irfs[order, :, :]
+    # TODO: this is not the most efficient way. We could also just re-order 
+    # the already estimated coefficients and covariance matrix. However, 
+    # this is the most general and most robust to making mistakes.
+    data = get_input_data(model)
+    model_tmp = VAR(data[:, order], model.p; trend_exponents=model.trend_exponents)
+    fit!(model_tmp)
+    irfs_ortho = _identify_irfs(model_tmp, Recursive(), max_horizon)
+
+    irfs = to_transmission_irfs(irfs)
+    irfs_ortho = to_transmission_irfs(irfs_ortho)
+
+    transmission_effects = transmission(from, irfs, irfs_ortho, q; method=:irfs)
+    return _irf_vec_to_array(transmission_effects, k, order)
+end
+
+function transmission(
+    from::Int,
+    model::LP,
+    method::Union{Recursive,ExternalInstrument},
+    q::Q,
+    order::AbstractVector{<:Int},
+    max_horizon::Int
+)
+
+    data = get_input_data(model)
+    k = size(data, 2)
+
+    irfs = fill(eltype(data[!, 1])(NaN), k, k, max_horizon + 1)
+    irfs[:, 1:1, :] .= _identify_irfs(model, method, max_horizon)
+    # re-ordering according to transmission ordering
+    irfs = irfs[order, :, :]
+    # Getting orthogonalised IRFs via a recursive identification method 
+    # using data re-ordered according to the transmission ordering
+    irfs_ortho = zeros(eltype(irfs), k, k, max_horizon + 1)
+    for treatment = 1:k
+        model_tmp = LP(data[:, order], treatment, model.p, 0:max_horizon; include_constant=model.include_constant)
+        irfs_ortho[:, treatment:treatment, :] .= _identify_irfs(model_tmp, Recursive(), max_horizon)
+    end
+
+    irfs = to_transmission_irfs(irfs)
+    irfs_ortho = to_transmission_irfs(irfs_ortho)
+
+    transmission_effects = transmission(from, irfs, irfs_ortho, q; method=:irfs)
+    return _irf_vec_to_array(transmission_effects, k, order)
+end

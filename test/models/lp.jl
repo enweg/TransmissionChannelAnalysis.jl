@@ -199,3 +199,28 @@ end
     @test maximum(abs, (irfs_lp - irfs_true) ./ irfs_true) < 1e-2
 end
 
+@testset "LP transmission implementation" begin
+    # This is just an implementation test. Correctness of intermediate functions 
+    # has been tested elsewhere. 
+
+    k = 4
+    T = 10
+    p = 2
+
+    data = DataFrame(randn(T, k), :auto)
+
+    treatment = 1
+    horizons = 0:3
+    model = LP(data, treatment, p, horizons; include_constant=true)
+
+    transmission_order = [3, 1, 2, 4]
+    q = make_condition("!y_{1,0} & !y_{1,1}", transmission_order)
+    transmission_effect = transmission(1, model, Recursive(), q, transmission_order, maximum(horizons))
+
+    # Oviously the first variable is not a valid instrument, but we are 
+    # really just testing whether the function runs. We are not testing for 
+    # correctness. That is done elsewhere. 
+    method = ExternalInstrument(2, [1])
+    transmission_effect = transmission(1, model, method, q, transmission_order, maximum(horizons))
+
+end

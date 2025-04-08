@@ -231,3 +231,28 @@ end
 
     @test maximum(abs, irfs_simulated[2:end, 1:1, :] - irfs_true[:, 1:1, :] ./ irfs_true[1, 1, 1]) < 1e-2
 end
+
+@testset "SVAR transmission implementation" begin
+    # This is just an implementation test. All underlying functions 
+    # have already been tested elsewhere. 
+
+    k = 3
+    p = 2
+    T = 100_000
+    trend_exponents = [0]
+
+    # First create RF model
+    Sigma_u = fill(0.5, k, k)
+    Sigma_u[diagind(Sigma_u)] .= 1
+    B_plus = 0.2 * randn(k, k * p + length(trend_exponents))
+    # Obtaining structural system from this
+    A0 = inv(cholesky(Sigma_u).L)
+    A_plus = A0 * B_plus
+
+    model = simulate(SVAR, T, A0, A_plus; trend_exponents=trend_exponents)
+    fit!(model, Recursive())
+
+    transmission_order = [1, 3, 2]
+    q = make_condition("!y_{2,0}", transmission_order)
+    transmission_effects = transmission(1, model, q, transmission_order, 3)
+end

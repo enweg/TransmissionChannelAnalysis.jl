@@ -227,3 +227,10 @@ function _find_variable_idx(variable::Union{Symbol, Int}, data::DataFrame)
     isa(variable, Int) && return variable
     return findfirst(==(variable), Symbol.(names(data)))
 end
+
+# B excludes deterministic components
+function _separate_lag_matrices(B::AbstractMatrix, p::Int)
+    k = div(size(B, 2), p)
+    Bs = [B[:, ((i-1)*k+1):(i*k)] for i=1:p]
+    return Bs
+end

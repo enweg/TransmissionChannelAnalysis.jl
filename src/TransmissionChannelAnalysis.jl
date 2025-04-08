@@ -42,6 +42,7 @@ export SVAR
 export identify, identify!
 include("./models/lp.jl")
 export LP
+include("./models/transmission.jl")
 
 
 end

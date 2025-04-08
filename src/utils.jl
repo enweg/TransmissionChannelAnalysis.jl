@@ -151,6 +151,22 @@ function set_remove_contradictions(b::Bool)
     REMOVE_CONTRADICTIONS[] = b
 end
 
+"""
+    ql(A::AbstractMatrix) -> Q, L
+
+Compute the QL decomposition of a matrix `A`, such that `A = Q * L`, where:
+
+- `Q` is an orthogonal matrix (`Q'Q = I`),
+- `L` is a lower-triangular matrix with positive diagonal entries.
+
+# Arguments
+- `A::AbstractMatrix`: The input matrix to decompose.
+
+# Returns
+- `Q`: An orthogonal matrix of the same size as `A`, representing the "Q" in 
+  the QL decomposition.
+- `L`: A lower-triangular matrix with positive diagonal elements.
+"""
 function ql(A::AbstractMatrix)
     k = size(A, 2)
     P = permmatrix(collect(k:-1:1))

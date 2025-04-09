@@ -279,6 +279,25 @@ function fit!(model::LP, ::Recursive)
     return model
 end
 
+"""
+    _2sls(X::AbstractMatrix{<:Number},
+         Y::AbstractMatrix{<:Number},
+         Z::AbstractMatrix{<:Number})
+
+Internal function for two-stage least squares (2SLS) estimation.
+
+Estimates regression coefficients when some regressors in `X` may be
+endogenous, using instruments in `Z`. Commonly used in external
+instrument identification.
+
+# Arguments
+- `X::Matrix{<:Number}`: regressors (may include endogenous variables)
+- `Y::Matrix{<:Number}`: outcomes
+- `Z::Matrix{<:Number}`: instruments and exogenous regressors
+
+# Returns
+- `Matrix{<:Number}`: 2SLS coefficient estimates
+"""
 function _2sls(
     X::AbstractMatrix{<:Number},
     Y::AbstractMatrix{<:Number},
@@ -288,11 +307,7 @@ function _2sls(
     X_hat = Z * ((Z' * Z) \ (Z' * X))
     return (X_hat' * X_hat) \ (X_hat' * Y)
 end
-# Enforcing that instrument are ordered before treatment 
-# This makes it easy to get Zt because we can just extract it from the 
-# contemporaneous block in Xt
-# Current implementation allows for that some contemporaneous controls are 
-# not used as instruments for the treatment
+
 function fit!(model::LP, method::ExternalInstrument)
     idxs_instruments = _find_variable_idx.(method.instruments, [model.data])
     idx_treatment = _find_variable_idx(model.treatment, model.data)

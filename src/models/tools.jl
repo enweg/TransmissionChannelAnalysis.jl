@@ -44,6 +44,12 @@ Base.length(x::IRF) = length(x.irfs)
 # API DESIGNS
 #-------------------------------------------------------------------------------
 
+"""
+    IRF(model::Model, max_horizon::Int)
+
+Returns the impulse response functions (IRFs) from `model` up to horizon 
+`max_horizon`.
+"""
 function IRF(::M, ::Int) where {M<:Model}
     error("$(M) does not implement IRF.")
 end

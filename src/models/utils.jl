@@ -2,54 +2,31 @@ using LinearAlgebra
 using DataFrames
 
 """
-    make_companion_matrix(Bs::AbstractVector{<:AbstractMatrix{<:Number}}) -> Matrix{<:Number}
+    make_companion_matrix(B_plus::Matrix{<:Number}) -> Matrix{<:Number}
+    make_companion_matrix(Bs::Vector{<:Matrix{<:Number}}, p::Int, n_exo::Int) -> Matrix{<:Number}
 
-Constructs the companion matrix of a Vector Autoregression (VAR) model.
-
-# Description
-In a VAR(p) model, the system can be rewritten in its companion form, which is 
-useful for analyzing stability properties and computing impulse responses. 
-Given the VAR representation:
-
-```math
-y_t = B_1 y_{t-1} + \\dots + B_p y_{t-p} + u_t,
-```
-
-we define the alternative representation:
-
-```math
-y_t = B^+ x_t + u_t,
-```
-
-where:
-- ``B^+ = [B_1 B_2 \\dots B_p]`` is the coefficient matrix of lagged values,
-- ``x_t = (y_{t-1}', \\dots, y_{t-p}')'`` is the stacked state vector.
-
-The function constructs the standard companion matrix ``C``, which is given by:
-
-```math
-C =
-\\begin{bmatrix}
-B^+ \\\\
-I_{(p-1)k} & 0
-\\end{bmatrix}
-```
-
-where ``k`` is the number of endogenous variables and ``p`` is the number of lags.
+Constructs the companion matrix of a VAR(p) model.
 
 # Arguments
-- `Bs::AbstractVector{AbstractMatrix{<:Number}}`: A vector containing the 
-   coefficient matrices ``[B_1, B_2, \\dots, B_p]``, where each 
-   ``B_i`` is a ``k \\times k`` matrix.
+- `Bs`: a vector of lag matrices `[B_1, B_2, ..., B_p]`, each `k × k`
+- `B_plus`: a single matrix formed by horizontally concatenating ``[C B_1 B_2 ... B_p]``
+   where ``C`` is the matrix of coefficients for deterministic (exogeneous) 
+   components.
+- `p::Int`: lag-length of the VAR. 
+- `n_exo::Int`: number of exogenous components, i.e. number of columns in ``C``.
 
 # Returns
-- `C::Matrix{<:Number}`: The companion matrix of size ``(kp \\times kp)``.
+- `Matrix{<:Number}`: The companion matrix of size `(k*p × k*p)`
 
-# Example
-```julia
-Bs = [rand(2,2) for _ in 1:2]
-C = make_companion_matrix(Bs)
+# Notes
+The companion matrix `C` has the block form:
+```math
+C = \\begin{bmatrix}
+    B_+ \\\\
+    I_{(p-1)k} & 0
+\\end{bmatrix}
 ```
+where ``B_+`` stacks the lag matrices, and ``k`` is the number of variables.
 """
 function make_companion_matrix(Bs::AbstractVector{<:AbstractMatrix{<:Number}})
     B_plus = reduce(hcat, Bs)
@@ -97,14 +74,31 @@ r = spectral_radius(X)
 spectral_radius(X::AbstractMatrix) = maximum(abs, eigvals(X))
 
 
+function make_lag_matrix!(X::AbstractMatrix{<:Number}, Y::AbstractVecOrMat{<:Number})
+    view(X, :, :) .= eltype(X)(NaN)
+    k = size(Y, 2)
+    nlag = floor(Int, size(X, 2) / k)
+    for l = 1:nlag
+        @views X[(l+1):end, ((l-1)*k+1):(l*k)] .= Y[1:(end-l), :]
+    end
+    return X
+end
+function make_lag_matrix(Y::AbstractVecOrMat{<:Number}, nlag::Int)
+    # do it separately because otherwise it breaks with vector input
+    r = size(Y, 1)
+    c = size(Y, 2)
+    T = eltype(Y) <: Int ? Float64 : eltype(Y)
+    X = zeros(T, r, c * nlag)
+    return make_lag_matrix!(X, Y)
+end
+
+
 """
     make_lag_matrix!(X::AbstractMatrix{<:Number}, Y::AbstractMatrix{<:Number}) -> AbstractMatrix{<:Number}
     make_lag_matrix(Y::AbstractMatrix{<:Number}, nlag::Int) -> AbstractMatrix{<:Number}
 
 Constructs a lag matrix from `Y`, storing the results in `X` (mutating) or 
 returning a new matrix.
-
-# Description
 
 If `Y` is a matrix of time series data with `T` observations and `k` variables, 
 then the lag matrix `X` has along its first `k` columns data `Y` lagged by 
@@ -149,32 +143,9 @@ Y = reduce(hcat, fill(Y, k));
 nlag = 2;
 X = make_lag_matrix(Y, nlag)
 ```
-
-# Notes
-- The function assumes that `Y` has more rows than `nlag`, ensuring enough data points for lagging.
-- The output maintains the same number of rows as `Y`, with leading `NaN` values where necessary.
-- The mutating version (`make_lag_matrix!`) is useful for performance-sensitive applications, avoiding extra allocations.
 """
-function make_lag_matrix!(X::AbstractMatrix{<:Number}, Y::AbstractVecOrMat{<:Number})
-    view(X, :, :) .= eltype(X)(NaN)
-    k = size(Y, 2)
-    nlag = floor(Int, size(X, 2) / k)
-    for l = 1:nlag
-        @views X[(l+1):end, ((l-1)*k+1):(l*k)] .= Y[1:(end-l), :]
-    end
-    return X
-end
-function make_lag_matrix(Y::AbstractVecOrMat{<:Number}, nlag::Int)
-    # do it separately because otherwise it breaks with vector input
-    r = size(Y, 1)
-    c = size(Y, 2)
-    T = eltype(Y) <: Int ? Float64 : eltype(Y)
-    X = zeros(T, r, c * nlag)
-    return make_lag_matrix!(X, Y)
-end
+make_lag_matrix, make_lag_matrix!
 
-# TODO: document
-# TODO: write official tests
 function make_lead_matrix!(X::AbstractMatrix{<:Number}, Y::AbstractVecOrMat{<:Number})
     view(X, :, :) .= eltype(X)(NaN)
     k = size(Y,2)
@@ -193,7 +164,54 @@ function make_lead_matrix(Y::AbstractVecOrMat{<:Number}, nlead::Int)
 end
 
 """
-    _make_trend!(v::AbstractVector, t::Int, trend_exponents::AbstractVector{<:Real})
+    make_lead_matrix!(X::AbstractMatrix{<:Number}, Y::AbstractVecOrMat{<:Number}) -> AbstractMatrix{<:Number}
+    make_lead_matrix(Y::AbstractVecOrMat{<:Number}, nlead::Int) -> AbstractMatrix{<:Number}
+
+Constructs a lead matrix from `Y`, storing the results in `X` (mutating) or
+returning a new matrix.
+
+If `Y` is a matrix of time series data with `T` observations and `k` variables,
+then the lead matrix `X` has along its first `k` columns data `Y` led by
+one period, along columns `(k+1):2k` data `Y` led by two periods, etc.
+
+Missing values (due to leads) are filled with `NaN` to preserve shape and
+type consistency.
+
+# Arguments
+- `X::AbstractMatrix{<:Number}`: A preallocated matrix of dimensions
+  `T × (k × nlead)` to store lead values
+- `Y::AbstractVecOrMat{<:Number}`: A matrix of time series data with dimensions
+  `T × k`
+- `nlead::Int`: The number of leads to include
+
+# Returns
+- If using `make_lead_matrix!(X, Y)`, the function modifies `X` in place and returns it
+- If using `make_lead_matrix(Y, nlead)`, a new matrix containing the lead values is created and returned
+
+# Examples
+**Mutating version**
+```julia
+k = 2;
+T = 10;
+Y = reduce(hcat, fill(collect(1:T), k));
+nlead = 2;
+X = zeros(T, size(Y, 2) * nlead);
+make_lead_matrix!(X, Y)
+```
+
+**Non-mutating version**
+```julia
+k = 2;
+T = 10;
+Y = reduce(hcat, fill(collect(1:T), k));
+nlead = 2;
+X = make_lead_matrix(Y, nlead)
+```
+"""
+make_lead_matrix, make_lead_matrix!
+
+"""
+    _make_trend!(v::AbstractVector, t::Int, trend_exponents::AbstractVector{<:Real}) --> AbstractVector
 
 Given a set of `trend_exponents`, fill the vector `v` with `[t^e for e in trend_exponents]`
 without any allocations. 
@@ -206,6 +224,8 @@ function _make_trend!(v::AbstractVector, t::Int, trend_exponents::AbstractVector
 end
 
 """
+    _rotate_in!(x::AbstractVector{T}, x_new::AbstractVector{T}) --> AbstractVector{T}
+
 Rotate in the new values `x_new` at the beginning of the old `x`. This works
 by shifting all values in `x` to higher indices such that the subvector `x_new`
 fits into the beginning of `x`. 
@@ -223,12 +243,46 @@ function _rotate_in!(x::AbstractVector{T}, x_new::AbstractVector{T}) where {T}
     return x
 end
 
+"""
+    _find_variable_idx(variable::Union{Symbol, Int}, data::DataFrame) -> Int
+
+Returns the column index of a variable in a `DataFrame`.
+
+If the input `variable` is an `Int`, it is assumed to already represent
+the column index and is returned directly.
+
+# Arguments
+- `variable::Union{Symbol, Int}`: Column name (`Symbol`) or column index (`Int`)
+- `data::DataFrame`: The DataFrame in which to search
+
+# Returns
+- `Int`: The column index of the specified variable
+"""
 function _find_variable_idx(variable::Union{Symbol, Int}, data::DataFrame)
     isa(variable, Int) && return variable
     return findfirst(==(variable), Symbol.(names(data)))
 end
 
-# B excludes deterministic components
+"""
+    _separate_lag_matrices(B::Matrix{<:Number}, p::Int) -> Vector{Matrix{<:Number}}
+
+Internal utility to convert a stacked VAR coefficient matrix into a vector of
+individual lag matrices.
+
+Given a matrix `B_plus = [B_1 B_2 ... B_p]` that horizontally stacks the
+lag coefficient matrices of a VAR(p) model (excluding deterministic components),
+this function returns a vector containing each `B_i` as a separate matrix.
+
+# Arguments
+- `B::Matrix{<:Number}`: The stacked coefficient matrix of size `(k × k*p)`,
+  where `k` is the number of variables and `p` the lag order
+- `p::Int`: The number of lags in the VAR model
+
+# Returns
+- `Vector{Matrix{<:Number}}`: A vector `[B_1, B_2, ..., B_p]` where each
+  `B_i` is a `k × k` matrix
+
+"""
 function _separate_lag_matrices(B::AbstractMatrix, p::Int)
     k = div(size(B, 2), p)
     Bs = [B[:, ((i-1)*k+1):(i*k)] for i=1:p]

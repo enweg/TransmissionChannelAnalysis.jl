@@ -209,6 +209,7 @@ the third dimension corresponds to the various horizons, and the second
 dimension corresponds to the various variables. 
 """
 residuals(model::LP) = require_fitted(model) && model.U
+
 nobs(model::LP) = size(model.data, 1) - model.p .- model.horizons
 
 """
@@ -218,6 +219,7 @@ The dependent variables are returned as a three dimensional array, with the
 third dimension corresponding the the various forecast horizons. 
 """
 get_dependent(model::LP) = model.Y
+
 get_independent(model::LP) = model.X
 get_input_data(model::LP) = model.data
 is_fitted(model::LP) = size(model.coeffs, 1) > 0

@@ -1,6 +1,34 @@
+"""
+    IRF(irfs::Array{<:Number,3}, varnames::Vector{Symbol},
+        model::Model, ident_method::Union{Nothing, AbstractIdentificationMethod}=nothing)
 
+Container for storing impulse response functions (IRFs) computed from a model.
+
+This structure captures both reduced-form and structural IRFs. For IRFs
+identified from a reduced-form model using an identification method
+(e.g., recursive or external instruments), the `ident_method` should be
+explicitly provided.
+
+For models that are already structural (e.g., identified SVARs) or for
+reduced-form IRFs (without identification), the `ident_method` should be left
+as `nothing`.
+
+# Fields
+- `irfs::Array{<:Number,3}`: The IRFs with shape `(variables, shocks, horizons)`
+- `varnames::Vector{Symbol}`: Variable names
+- `model::Model`: The model object used to generate the IRFs
+- `ident_method::Union{Nothing, AbstractIdentificationMethod}`:
+  The identification method used, if applicable (only for RF models)
+
+# Constructors
+- `IRF(irfs, varnames, model)`
+  Creates an IRF object for a structural model or reduced-form IRFs
+
+- `IRF(irfs, varnames, model, ident_method)`
+  Use this when IRFs are structurally identified from a reduced-form model
+"""
 struct IRF
-    irfs::AbstractArray{<:Number}                              # contains the actual data 
+    irfs::AbstractArray{<:Number}                              # contains the actual irfs 
     varnames::AbstractVector{Symbol}                           # variable names 
     model::Model                                               # model used to compute IRFs
     ident_method::Union{Nothing,AbstractIdentificationMethod}  # identification method if model is RF
@@ -37,8 +65,6 @@ Base.:/(x, y::IRF) = x / y.irfs
 Base.:/(x::Number, y::IRF) = x ./ y.irfs
 Base.size(x::IRF) = size(x.irfs)
 Base.length(x::IRF) = length(x.irfs)
-
-
 
 #-------------------------------------------------------------------------------
 # API DESIGNS

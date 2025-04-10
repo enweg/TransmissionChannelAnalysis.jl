@@ -1,4 +1,9 @@
+"""
+    _inverse_order(order::AbstractVector{<:Int}) --> AbstractVector{<:Int}
 
+If `order` defines an ordering, then `_inverse_order(order)` is the inverse 
+order. 
+"""
 function _inverse_order(order::AbstractVector{Int})
     inv = similar(order)
     for (i, val) in enumerate(order)
@@ -7,6 +12,24 @@ function _inverse_order(order::AbstractVector{Int})
     return inv
 end
 
+"""
+    _irf_vec_to_array(irfs::AbstractVector, 
+                      k::Int, 
+                      order::AbstractVector{<:Int}) --> Array{<:Number, 3}
+
+Obtain IRFs in the standard three-dimensional array representation from IRFs 
+in transmission representation, i.e. represented as a matrix in which the 
+third dimension of the standard representation is stacked above each other. 
+If `order` is not `1:k`, then the endogenous variables will be re-ordered 
+using the inverse of `order`. 
+
+## Arguments
+- `irfs::AbstractVector`: Vector of IRFs of a single shock with dimension 
+  (k*h, 1). In transmission representation, i.e. horizons are stacked above 
+  each other. 
+- `k::Int`: Number of endogenous variables. 
+- `order::AbstractVector{<:Int}`: Ordering defined by the transmission matrix. 
+"""
 function _irf_vec_to_array(
     irfs::AbstractVector,
     k::Int,
@@ -23,6 +46,38 @@ function _irf_vec_to_array(
     return irfs_array
 end
 
+"""
+    transmission(from::Int, 
+                 model::Model, 
+                 q::Q, 
+                 order::AbstractVector{<:Int}, 
+                 max_horizon::Int) --> Array{<:Number, 3}
+
+    transmission(from::Int, 
+                 model::Model, 
+                 method::AbstractIdentificationMethod, 
+                 order::AbstractVector{<:Int}, 
+                 max_horizon::Int) --> Array{<:Number, 3}
+
+Compute the transmission effect of a transmission channel defined by the 
+condition `q`. If `model` is a reduced-form model, `method` will be used to 
+identify the required structural shock. 
+
+## Arguments
+- `from::Int`: Shock number. 
+- `model::Model`: A model, such as an `SVAR`, `VAR`, or `LP`. 
+- `method::AbstractIdentificationMethod`: An identification method to identify 
+    the `from`-th structural shock. 
+- `q::Q`: A transmission condition. See also `Q` and `make_condition`. 
+- `order::AbnstractVector{<:Int}`: order of variables defined by the transmission 
+  matrix. 
+- `max_horizon::Int`: Maximum horizon for the transmission effect.  
+
+## Returns
+- Returns a three dimensional array with the first dimension correspondin 
+  to the endogenous variables (in original order), the second to the shock, 
+  and the third to the horizon (from 0 to `max_horizon`).
+"""
 function transmission(
     from::Int,
     model::SVAR,

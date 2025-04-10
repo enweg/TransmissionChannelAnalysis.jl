@@ -55,16 +55,16 @@ Transform a standard three dimensional IRF array into a IRF matrix. The
   n_horizons). This is the same as what would be obtained via
   ``(I-B)^{-1}\\mathbb{Q}`` using the notation of $WEGNER. 
 """
-function to_transmission_irfs(irfs::AbstractArray{T, 3}) where {T}
+function to_transmission_irfs(irfs::AbstractArray{T,3}) where {T}
     k = size(irfs, 1)
     max_horizon = size(irfs, 3) - 1
-    irfs = reduce(vcat, eachslice(irfs; dims = 3))
-    irfs = reduce(hcat, [vcat(zeros(k*h, k), irfs[1:(end-k*h), :]) for h = 0:max_horizon])
+    irfs = reduce(vcat, eachslice(irfs; dims=3))
+    irfs = reduce(hcat, [vcat(zeros(k * h, k), irfs[1:(end-k*h), :]) for h = 0:max_horizon])
     return irfs
 end
 
 """
-  transmission(from::Int, arr1::AbstractMatrix{T}, arr2::AbstractMatrix{T}, q::Q; method = :BOmega) where {T}
+    transmission(from::Int, arr1::AbstractMatrix{T}, arr2::AbstractMatrix{T}, q::Q; method = :BOmega) where {T}
 
 
 Given a transmission condition `q`, calculate the transmission effect using the
@@ -117,6 +117,6 @@ irfs_ortho = to_transmission_irfs(irfs_ortho)
 effect = transmission(1, irfs, irfs_ortho, cond; method = :irfs)
 ```
 """
-function transmission(from::Int, arr1::AbstractMatrix{T}, arr2::AbstractMatrix{T}, q::Q; method = :BOmega) where {T}
-  return transmission(from, arr1, arr2, q, Val{method})
+function transmission(from::Int, arr1::AbstractMatrix{T}, arr2::AbstractMatrix{T}, q::Q; method=:BOmega) where {T}
+    return transmission(from, arr1, arr2, q, Val{method})
 end

@@ -28,7 +28,7 @@ end
 
 @testset "LP basic functions" begin
     k = 4
-    T = 10
+    T = 100
     p = 2
 
     data = DataFrame(randn(T, k), :auto)

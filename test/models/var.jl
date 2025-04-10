@@ -64,9 +64,9 @@ end
     trend_exponents = 0:1
     B = 0.2 * randn(k, k*p + length(trend_exponents))
     Sigma_u = [
-        1 0.1 0.1
-        0.1 1 0.1
-        0.1 0.1 1
+        10 5 5
+        5 10 5 
+        5 5 10
     ]
     model = simulate(VAR, T, B, Sigma_u; trend_exponents=trend_exponents)
     fit!(model)

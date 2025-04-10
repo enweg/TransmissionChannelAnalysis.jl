@@ -336,6 +336,34 @@ end
 # IMPULSE RESPONSE FUNCTIONS
 #-------------------------------------------------------------------------------
 
+"""
+    _svar_irf(A0::Matrix{<:Number}, A_plus::Matrix{<:Number},
+              p::Int, max_horizon::Int) -> Array{<:Number, 3}
+
+Internal function to compute structural impulse response functions (IRFs) up to
+horizon `max_horizon` from a structural VAR(p) model.
+
+!!! warning
+    The matrix `A_plus` must exclude any deterministic components (e.g., constant,
+    trend). Use `coeffs(model, true)` to extract it properly from a `SVAR` model.
+
+The resulting IRFs have the shape `(k, k, H + 1)`, where:
+- `k`: number of variables
+- `H`: maximum impulse response horizon
+- First dimension: responding variable
+- Second dimension: shock
+- Third dimension: horizon
+
+# Arguments
+- `A0::Matrix{<:Number}`: Contemporaneous impact matrix (must be invertible)
+- `A_plus::Matrix{<:Number}`: Stacked lag coefficient matrix 
+  `[A_1 A_2 ... A_p]`, excluding deterministic terms
+- `p::Int`: Lag order
+- `max_horizon::Int`: Maximum horizon for IRFs
+
+# Returns
+- `Array{<:Number, 3}`: Structural IRF array of size `(k, k, max_horizon + 1)`
+"""
 function _svar_irf(
     A0::AbstractMatrix{<:Number}, 
     A_plus::AbstractMatrix{<:Number},   # excludes any exogenous terms
@@ -372,6 +400,25 @@ function _identify_irfs(::VAR, ::I, max_horizon::Int) where {I<:AbstractIdentifi
     error("_identify_irfs is not implemented for model VAR and method $I.")
 end
 
+"""
+    _identify_irfs(B::AbstractMatrix{<:Number}, 
+                   Sigma_u::AbstractMatrix{<:Number}, 
+                   p::Int, 
+                   method::AbstractIdentificationMethod, 
+                   max_horizon::Int) --> AbstractArray{<:Number, 3}
+
+Internal method to directly identify IRFs from `VAR` matrices `B` and `Sigma_u`
+using identification method `method`. 
+
+## Arguments
+- `B::AbstractMatrix{<:Number}`: Stacked matrix of lag matrices [B_1, ..., B_p]
+  excluding coefficients on deterministic components. 
+- `Sigma_u::AbstractMatrix{<:Number}`: Covariance matrix of `VAR` residuals. 
+- `p::Int`: Lag-length of `VAR`. 
+- `method::AbstractIdentificationMethod`: Identification method used to identify 
+  `SVAR` IRFs from `VAR`. 
+- `max_horizon::Int`: Maximum horizon for impulse responses. 
+"""
 function _identify_irfs(
     B::AbstractMatrix{<:Number},        # excludes deterministic components
     Sigma_u::AbstractMatrix{<:Number}, 

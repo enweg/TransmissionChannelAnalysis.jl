@@ -215,7 +215,7 @@ function make_companion_matrix(model::VAR)
 end
 
 """
-    spectral_radius(model::VAR) -> Real
+    spectral_radius(model::Union{VAR,SVAR}) -> Real
 
 Computes the spectral radius of the companion matrix of a fitted `VAR` model.
 
@@ -242,7 +242,7 @@ function spectral_radius(model::VAR)
 end
 
 """
-    is_stable(model::VAR) -> Bool
+    is_stable(model::Union{VAR,SVAR}) -> Bool
     is_stable(C::AbstractMatrix) -> Bool
 
 Checks whether a VAR model or a companion matrix corresponds to a stable
@@ -326,16 +326,16 @@ bic(Sigma_u::AbstractMatrix{<:Number}, num_coeffs::Int, T::Int) = sic(Sigma_u, n
 bic(model::VAR) = sic(model)
 
 """
-    aic(model::VAR) -> Real
+    aic(model::Union{VAR,SVAR}) -> Real
     aic(Sigma_u::Matrix{<:Number}, num_coeffs::Int, T::Int) -> Real
 
-    bic(model::VAR) -> Real
+    bic(model::Union{VAR,SVAR}) -> Real
     bic(Sigma_u::Matrix{<:Number}, num_coeffs::Int, T::Int) -> Real
 
-    sic(model::VAR) -> Real
+    sic(model::Union{VAR,SVAR}) -> Real
     sic(Sigma_u::Matrix{<:Number}, num_coeffs::Int, T::Int) -> Real
 
-    hqc(model::VAR) -> Real
+    hqc(model::Union{VAR,SVAR}) -> Real
     hqc(Sigma_u::Matrix{<:Number}, num_coeffs::Int, T::Int) -> Real
 
 Computes information criteria for model selection in VARs.

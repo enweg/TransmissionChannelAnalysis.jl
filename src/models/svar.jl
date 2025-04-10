@@ -1,3 +1,46 @@
+"""
+    SVAR <: Model
+
+Structural Vector Autoregressive (SVAR) model in matrix form.
+
+A SVAR of lag order `p` is specified as:
+
+```math
+    A_0y_t = C e_t + A_1 y_{t-1} + ... + A_p y_{t-p} + \\varepsilon_t
+```
+where:
+- ``e_t`` is a vector of deterministic components (constant, trends, etc)
+- ``C, A_i`` are conformable matrices
+- ``\\varepsilon_t`` are structural shocks
+
+This can be rewritten compactly as:
+
+```math
+    y_t'A0' = z_t' A_+' + u_t'
+```
+
+where:
+- ``z_t = [e_t; y_{t-1}; ...; y_{t-p}]`` includes deterministic components and
+  lagged values of all variables
+- ``A_+ = [C, A_1, ..., A_p]`` is the coefficient matrix stacking trend and
+  autoregressive terms
+
+Assuming ``A0`` is invertible, the reduced-form VAR can be obtained as 
+
+```math
+y_t' = z_t' A_+'(A_0')^{-1} + u_t'(A_0')^{-1}
+```
+
+which can be represented using a `VAR` object.
+
+# Fields
+- `A_plus::Matrix{<:Number}`: Coefficient matrix `[C, A_1, ..., A_p]`
+- `A_0::AbstractMatrix{<:Number}`: Contemporaneous relationships.
+- `p::Int`: Lag order of the (S)VAR
+- `trend_exponents::Vector{<:Number}`: Time trend exponents (e.g., `[0,1]`
+  implies constant and linear trend)
+- `var::VAR`: Reduced form representation of SVAR 
+"""
 mutable struct SVAR <: Model
     # defining the DGP
     A_plus::AbstractMatrix{<:Number}              # Coefficient matrices [C, A1, ..., Ap]
@@ -8,6 +51,23 @@ mutable struct SVAR <: Model
     # reduced form model
     var::VAR
 end
+
+"""
+    SVAR(data::DataFrame, 
+         p::Int;
+         trend_exponents::Vector{<:Number} = [0])
+
+Constructs a `SVAR` model object with data, lag length `p`, and
+specified time trend exponents. Coefficients and residuals are uninitialised 
+but can be estimed using `fit!` and an appropriate `AbstractIdentificationMethod`.
+
+# Arguments
+- `data::DataFrame`: Dataset used for the estimation
+- `p::Int`: Lag length
+
+## Keyword Arguments
+- `trend_exponents::Vector{<:Number}`: Exponents of time trends (default: `[0]`)
+"""
 function SVAR(data::DataFrame, p::Int; trend_exponents::AbstractVector{<:Number}=[0])
     K = size(data, 2)
     type = eltype(data[:, 1])
@@ -30,6 +90,12 @@ function coeffs(model::SVAR, exclude_deterministic::Bool=false)
 end
 fitted(model::SVAR) = require_fitted(model) && fitted(model.var)
 residuals(model::SVAR) = require_fitted(model) && residuals(model.var)
+
+"""
+    shocks(model::SVAR) --> AbstractMatrix{<:Number}
+
+Returns the identified shocks.
+"""
 shocks(model::SVAR) = require_fitted(model) && residuals(model.var) * model.A0'
 nobs(model::SVAR) = nobs(model.var)
 get_dependent(model::SVAR) = get_dependent(model.var)
@@ -38,6 +104,11 @@ get_input_data(model::SVAR) = get_input_data(model.var)
 is_fitted(model::SVAR) = size(model.A0, 1) >= 1
 is_structural(model::SVAR) = true
 
+"""
+    make_companion_matrix(model::SVAR) --> Matrix{<:Number}
+
+Returns the companion matrix for the `VAR` representation of the `SVAR`. 
+"""
 make_companion_matrix(model::SVAR) = require_fitted(model) && make_companion_matrix(model.var)
 spectral_radius(model::SVAR) = require_fitted(model) && spectral_radius(model.var)
 is_stable(model::SVAR) = require_fitted(model) && is_stable(model.var)
@@ -67,7 +138,14 @@ end
 #-------------------------------------------------------------------------------
 
 """
-    _identify(model::SVAR, method::AbstractIdentificationMethod)
+    _identify(model::SVAR, 
+              method::AbstractIdentificationMethod
+             ) --> (Matrix{<:Number}, Matrix{<:Number})
+
+    _identify(B::AbstractMatrix{<:Number}, 
+              Sigma_u::AbstractMatrix{<:Number}, 
+              method::AbstractIdentificationMethod
+             ) --> (Matrix{<:Number}, Matrix{<:Number})
 
 Internal method for identifying structural matrices in SVAR models.
 
@@ -75,8 +153,17 @@ Must return `A0` and `A_plus` matrices. Should not be implemented by
 models that do not use structural matrices (e.g., local projections).
 
 For more details, see the `SVAR` documentation.
+
+## Arguments
+- `model::VAR`: An estimated VAR model
+- `method::AbstractIdentificationMethod`: An identification method to identify 
+  the SVAR from the VAR. 
+- `B::AbstractMatrix{<:Number}`: Coefficient matrix [C B_1 ... B_p] of the VAR. 
+  See the `VAR` documention for more information. 
+- `Sigma_u::AbstractMatrix{<:Number}`: Covariance matrix of VAR residuals. See
+  the `VAR` documentation for more information. 
 """
-function _identify(::SVAR, ::I) where {I<:AbstractIdentificationMethod}
+function _identify(::VAR, ::I) where {I<:AbstractIdentificationMethod}
     error("_identify is not implemented for SVAR and method $I.")
 end
 
@@ -121,11 +208,29 @@ function identify(model::VAR, method::AbstractIdentificationMethod)
     return SVAR(A_plus, A0, model.p, model.trend_exponents, model)
 end
 
+"""
+    fit!(model::SVAR, identification_method::AbstractIdentificationMethod) --> SVAR
+
+Estimate an SVAR using `identification_method`. 
+
+## Argument
+- `model::SVAR`: A SVAR model to be estimated
+- `identification_method::AbstractIdentificationMethod`: Identification method 
+  used to identify SVAR from reduced-form VAR
+"""
 function fit!(model::SVAR, identification_method::AbstractIdentificationMethod)
     fit!(model.var)
     return identify!(model, identification_method)
 end
 
+"""
+    fit_and_select!(model::SVAR, 
+                    identification_method::AbstractIdentificationMethod, 
+                    ic_function::Function=aic) --> (SVAR, DataFrame)
+
+Select and estimate a `SVAR` model by first selecting an estimating a `VAR` 
+model and then identifying the `SVAR` from the `VAR` using `identification_method`. 
+"""
 function fit_and_select!(
     model::SVAR, 
     identification_method::AbstractIdentificationMethod,
@@ -142,6 +247,49 @@ end
 # SIMULATION
 #-------------------------------------------------------------------------------
 
+"""
+    simulate(::Type{SVAR}, shocks::Matrix{<:Number}, A0::Matrix{<:Number},
+             A_plus::Matrix{<:Number};
+             trend_exponents::Vector{<:Number}=[0],
+             initial::Union{Nothing,Vector{<:Number}}=nothing) -> SVAR
+
+    simulate(::Type{SVAR}, T::Int, A0::Matrix{<:Number}, A_plus::Matrix{<:Number};
+             trend_exponents::Vector{<:Number}=[0],
+             initial::Union{Nothing,Vector{<:Number}}=nothing) -> SVAR
+
+Simulates a structural VAR (SVAR) model using the structural form
+characterised by matrices `A0` and `A_plus`.
+
+The SVAR model is given by:
+
+```math
+    A_0 y_t = C e_t + A_1 y_{t-1} + ... + A_p y_{t-p} + \\varepsilon_t
+```
+
+# Method 1: `simulate(::Type{SVAR}, shocks, A0, A_plus)`
+Simulates an SVAR process given structural shocks. 
+
+# Method 2: `simulate(::Type{SVAR}, T, A0, A_plus)`
+Generates random structural shocks from a multivariate Guassian with identify 
+covariance and simulates the SVAR process using these shocks.
+
+# Arguments
+- `A0::Matrix{<:Number}`: Contemporaneous impact matrix (invertible)
+- `A_plus::Matrix{<:Number}`: Coefficient matrix `[C A_1 ... A_p]` 
+   (size `k × (k*p + m)`) where `m` is the number of exogenous components. 
+- `shocks::Matrix{<:Number}`: Structural shocks of shape `k × T`
+- `T::Int`: Number of time periods to simulate
+- `trend_exponents::Vector{<:Number}`: Exponents for deterministic trends
+  (e.g., `[0,1]` for constant and linear trend)
+- `initial::Union{Nothing, Vector{<:Number}}`: Optional initial conditions
+  for lagged variables (length `k * p`). If `nothing` lags will be initialised 
+  at zero.
+
+# Returns
+- `SVAR`: A simulated `SVAR` model containing the generated dataset.
+  The data can be accessed using `get_input_data`, or the model can be
+  estimated using `fit!`.
+"""
 function simulate(                                            # k variables, T periods, p lags
     ::Type{SVAR},                                             # 
     shocks::AbstractMatrix{<:Number},                         # k × T

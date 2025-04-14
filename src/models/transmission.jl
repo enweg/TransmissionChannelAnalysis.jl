@@ -47,15 +47,16 @@ function _irf_vec_to_array(
 end
 
 """
-    transmission(from::Int, 
-                 model::Model, 
+    transmission(model::Model, 
+                 from::Int, 
                  q::Q, 
                  order::AbstractVector{<:Int}, 
                  max_horizon::Int) --> Array{<:Number, 3}
 
-    transmission(from::Int, 
-                 model::Model, 
+    transmission(model::Model, 
                  method::AbstractIdentificationMethod, 
+                 from::Int, 
+                 q::Q,
                  order::AbstractVector{<:Int}, 
                  max_horizon::Int) --> Array{<:Number, 3}
 
@@ -64,10 +65,10 @@ condition `q`. If `model` is a reduced-form model, `method` will be used to
 identify the required structural shock. 
 
 ## Arguments
-- `from::Int`: Shock number. 
 - `model::Model`: A model, such as an `SVAR`, `VAR`, or `LP`. 
 - `method::AbstractIdentificationMethod`: An identification method to identify 
     the `from`-th structural shock. 
+- `from::Int`: Shock number. 
 - `q::Q`: A transmission condition. See also `Q` and `make_condition`. 
 - `order::AbnstractVector{<:Int}`: order of variables defined by the transmission 
   matrix. 
@@ -79,8 +80,8 @@ identify the required structural shock.
   and the third to the horizon (from 0 to `max_horizon`).
 """
 function transmission(
-    from::Int,
     model::SVAR,
+    from::Int,
     q::Q,
     order::AbstractVector{<:Int},
     max_horizon::Int
@@ -104,9 +105,9 @@ function transmission(
 end
 
 function transmission(
-    from::Int,
     model::VAR,
     method::Recursive,
+    from::Int,
     q::Q,
     order::AbstractVector{<:Int},
     max_horizon::Int
@@ -117,13 +118,13 @@ function transmission(
     k == length(order) || error("length(order) != k")
 
     model_svar = identify(model, method)
-    return transmission(from, model_svar, q, order, max_horizon)
+    return transmission(model_svar, from, q, order, max_horizon)
 end
 
 function transmission(
-    from::Int,
     model::VAR,
     method::InternalInstrument,
+    from::Int,
     q::Q,
     order::AbstractVector{<:Int},
     max_horizon::Int
@@ -155,9 +156,9 @@ function transmission(
 end
 
 function transmission(
-    from::Int,
     model::LP,
     method::Union{Recursive,ExternalInstrument},
+    from::Int,
     q::Q,
     order::AbstractVector{<:Int},
     max_horizon::Int

@@ -215,12 +215,12 @@ end
 
     transmission_order = [3, 1, 2, 4]
     q = make_condition("!y_{1,0} & !y_{1,1}", transmission_order)
-    transmission_effect = transmission(1, model, Recursive(), q, transmission_order, maximum(horizons))
+    transmission_effect = transmission(model, Recursive(), 1, q, transmission_order, maximum(horizons))
 
     # Oviously the first variable is not a valid instrument, but we are 
     # really just testing whether the function runs. We are not testing for 
     # correctness. That is done elsewhere. 
     method = ExternalInstrument(2, [1])
-    transmission_effect = transmission(1, model, method, q, transmission_order, maximum(horizons))
+    transmission_effect = transmission(model, method, 1, q, transmission_order, maximum(horizons))
 
 end

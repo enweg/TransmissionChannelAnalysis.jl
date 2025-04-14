@@ -254,5 +254,5 @@ end
 
     transmission_order = [1, 3, 2]
     q = make_condition("!y_{2,0}", transmission_order)
-    transmission_effects = transmission(1, model, q, transmission_order, 3)
+    transmission_effects = transmission(model, 1, q, transmission_order, 3)
 end

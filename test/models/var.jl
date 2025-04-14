@@ -268,12 +268,12 @@ end
 
     transmission_order = [3, 1, 2]
     q = make_condition("!y_{1,0} & !y_{1,1}", transmission_order)
-    transmission_effects = transmission(2, model, Recursive(), q, transmission_order, 3)
+    transmission_effects = transmission(model, Recursive(), 2, q, transmission_order, 3)
 
     # Obviously there is no valid instrument here, but we check the correctness 
     # of the instrument estimation elsewhere. Here we really just care about 
     # whether the functions run without error. Correctness, again, has been 
     # shown elsewhere. 
     method = InternalInstrument(2)
-    transmission_effects = transmission(1, model, method, q, transmission_order, 3)
+    transmission_effects = transmission(model, method, 1, q, transmission_order, 3)
 end

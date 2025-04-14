@@ -21,4 +21,28 @@ export make_B, make_Omega, make_systems_form
 export through, not_through
 export set_remove_contradictions
 
+# Models
+include("./models/utils.jl")
+export make_companion_matrix, spectral_radius
+include("./models/model.jl")
+export Model
+include("./models/identification.jl")
+export AbstractIdentificationMethod, Recursive
+export InternalInstrument, ExternalInstrument
+include("./models/tools.jl")
+export IRF
+include("./models/var.jl")
+export VAR, coeffs, cov, fitted, residuals, nobs, get_dependent, get_independent
+export get_input_data, is_structural, is_fitted, is_stable
+export aic, hqc, sic, bic
+export fit!, fit_and_select!
+export simulate!, simulate
+include("./models/svar.jl")
+export SVAR
+export identify, identify!
+include("./models/lp.jl")
+export LP
+include("./models/transmission.jl")
+
+
 end

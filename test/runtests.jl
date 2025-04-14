@@ -3,9 +3,14 @@ using Test
 using Serialization
 using JSON
 using LinearAlgebra
+using Random
 
 # common functions used for tests in "transmission-function.jl"
 include("./transmission-function-tests.jl")
+
+#-------------------------------------------------------------------------------
+# Transmission Functions
+#-------------------------------------------------------------------------------
 
 @testset "Utils" begin
     include("./utils.jl")
@@ -26,4 +31,20 @@ end
     TransmissionChannelAnalysis.REMOVE_CONTRADICTIONS[] = false
     include("./simplifying.jl")
     include("./transmission-function.jl")
+end
+
+#-------------------------------------------------------------------------------
+# Models
+#-------------------------------------------------------------------------------
+
+@testset "VAR" begin
+    include("./models/var.jl")
+end
+
+@testset "SVAR" begin
+    include("./models/svar.jl")
+end
+
+@testset "LP" begin
+    include("./models/lp.jl")
 end

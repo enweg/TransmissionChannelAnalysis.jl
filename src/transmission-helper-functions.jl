@@ -1,5 +1,5 @@
 """
-    through(idx, horizons, order)
+    through(idx, horizons, order) --> Q
 
 All paths must go through variables in `idx` in periods `horizons`. Note, this 
 uses the dynamic system notation `y` such that `idx` refers to the index of 
@@ -22,8 +22,10 @@ the variable in the original dynamic system, i.e. in the SVARMA.
 - `idx::AbstractVector{<:Int}`: Indices of variables through which the paths 
   should go. These are the original indices in the dynamic system, e.g. the SVAR, 
   before applying the transmission matrix. 
-- `horizons::Vector{AbstractVector{<:Int}}`: Horizons for which the paths must 
-  go through the variable. Must be a vector for each variable in `idx`.
+- `horizons::Union{AbstractVector{<:Int},Vector{AbstractVector{<:Int}}}`: Horizons 
+  for which the paths must go through the variable. Must either be a vector 
+  for each variable in `idx` or a single vector. If it is a single vector, then 
+  the horizons will be applied to each variable in `idx`.
 - `order::AbstractVector{<:Int}`: Variable ordering determined by the transmission 
   matrix
 
@@ -69,30 +71,43 @@ q = through([1, 2], [[0, 1], [0, 1]], [2, 1, 3, 4])
 ```
 """
 function through(
-  idx::Int,
-  horizons::AbstractVector{<:Int},
-  order::AbstractVector{<:Int}
+    idx::Int,
+    horizons::AbstractVector{<:Int},
+    order::AbstractVector{<:Int}
 )
 
-  s = join(["y_{$idx, $h}" for h in horizons], " & ")
-  return make_condition(s, order)
+    s = join(["y_{$idx, $h}" for h in horizons], " & ")
+    return make_condition(s, order)
 end
 function through(
-  idx::AbstractVector{<:Int},
-  horizons::Vector{AbstractVector{<:Int}},
-  order::AbstractVector{<:Int}
+    idx::AbstractVector{<:Int},
+    horizons::Vector{<:AbstractVector{<:Int}},
+    order::AbstractVector{<:Int}
 )
 
-  qs = [through(i, h, order) for (i, h) in zip(idx, horizons)]
-  q = qs[1]
-  for i = 2:lastindex(qs)
-    q = q & qs[i]
-  end
-  return q
+    qs = [through(i, h, order) for (i, h) in zip(idx, horizons)]
+    q = qs[1]
+    for i = 2:lastindex(qs)
+        q = q & qs[i]
+    end
+    return q
+end
+function through(
+    idx::AbstractVector{<:Int},
+    horizons::AbstractVector{<:Int},
+    order::AbstractVector{<:Int}
+)
+
+    qs = [through(i, horizons, order) for i in idx]
+    q = qs[1]
+    for i = 2:lastindex(qs)
+        q = q & qs[i]
+    end
+    return q
 end
 
 """
-    not_through(idx, horizons, order)
+    not_through(idx, horizons, order) --> Q
 
 All paths cannot go through variables in `idx` in periods `horizons`. Note, this 
 uses the dynamic system notation `y` such that `idx` refers to the index of 
@@ -116,8 +131,10 @@ the variable in the original dynamic system, i.e. in the SVARMA.
 - `idx::AbstractVector{<:Int}`: Indices of variables through which the paths 
   cannot go. These are the original indices in the dynamic system, e.g. the SVAR, 
   before applying the transmission matrix. 
-- `horizons::Vector{AbstractVector{<:Int}}`: Horizons for which the paths cannot 
-  go through the variable. Must be a vector for each variable in `idx`.
+- `horizons::Union{AbstractVector{<:Int},Vector{AbstractVector{<:Int}}}`: Horizons 
+  for which the paths cannot go through the variable. Must either be a vector 
+  for each variable in `idx` or a single vector. If it is a single vector, then 
+  the horizons will be applied to each variable in `idx`.
 - `order::AbstractVector{<:Int}`: Variable ordering determined by the transmission 
   matrix
 
@@ -150,24 +167,36 @@ q = not_through(2, 0:20, 1:4)
 
 """
 function not_through(
-  idx::Int,
-  horizons::AbstractVector{<:Int},
-  order::AbstractVector{<:Int}
+    idx::Int,
+    horizons::AbstractVector{<:Int},
+    order::AbstractVector{<:Int}
 )
 
-  s = join(["!y_{$idx, $h}" for h in horizons], " & ")
-  return make_condition(s, order)
+    s = join(["!y_{$idx, $h}" for h in horizons], " & ")
+    return make_condition(s, order)
 end
 function not_through(
-  idx::AbstractVector{<:Int},
-  horizons::Vector{AbstractVector{<:Int}},
-  order::AbstractVector{<:Int}
+    idx::AbstractVector{<:Int},
+    horizons::Vector{<:AbstractVector{<:Int}},
+    order::AbstractVector{<:Int}
 )
 
-  qs = [not_through(i, h, order) for (i, h) in zip(idx, horizons)]
-  q = qs[1]
-  for i = 2:lastindex(qs)
-    q = q & qs[i]
-  end
-  return q
+    qs = [not_through(i, h, order) for (i, h) in zip(idx, horizons)]
+    q = qs[1]
+    for i = 2:lastindex(qs)
+        q = q & qs[i]
+    end
+    return q
+end
+function not_through(
+    idx::AbstractVector{<:Int},
+    horizons::AbstractVector{<:Int},
+    order::AbstractVector{<:Int}
+)
+    qs = [not_through(i, horizons, order) for i in idx]
+    q = qs[1]
+    for i = 2:lastindex(qs)
+        q = q & qs[i]
+    end
+    return q
 end

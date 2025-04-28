@@ -90,3 +90,39 @@ The best model has the smallest `selection_function` value, where
 """
 function fit_and_select! end
 
+function get_variable_names(model::Model)
+    return Symbol.(names(get_input_data(model)))
+end
+
+function through(
+    model::Model, 
+    variables::Union{AbstractVector{Symbol}, Symbol}, 
+    horizons::Union{AbstractVector{<:Int},Vector{<:AbstractVector{<:Int}}}, 
+    order::AbstractVector{Symbol}
+)
+
+    data = get_input_data(model)
+    if isa(variables, AbstractVector)
+        idx = _find_variable_idx.(variables, [data])
+    else
+        idx = _find_variable_idx(variables, data)
+    end
+    idx_order = _find_variable_idx.(order, [data])
+    return through(idx, horizons, idx_order)
+end
+function not_through(
+    model::Model, 
+    variables::Union{AbstractVector{Symbol}, Symbol}, 
+    horizons::Union{AbstractVector{<:Int},Vector{<:AbstractVector{<:Int}}}, 
+    order::AbstractVector{Symbol}
+)
+    data = get_input_data(model)
+    if isa(variables, AbstractVector)
+        idx = _find_variable_idx.(variables, [data])
+    else
+        idx = _find_variable_idx(variables, data)
+    end
+    idx_order = _find_variable_idx.(order, [data])
+    return not_through(idx, horizons, idx_order)
+end
+

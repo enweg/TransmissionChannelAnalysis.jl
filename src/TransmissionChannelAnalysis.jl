@@ -25,7 +25,7 @@ export set_remove_contradictions
 include("./models/utils.jl")
 export make_companion_matrix, spectral_radius
 include("./models/model.jl")
-export Model
+export Model, get_variable_names
 include("./models/identification.jl")
 export AbstractIdentificationMethod, Recursive
 export InternalInstrument, ExternalInstrument

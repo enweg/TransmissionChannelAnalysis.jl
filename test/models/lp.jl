@@ -227,4 +227,6 @@ end
     q = not_through(model, [:x1, :x3], 0:1, transmission_order)
     q = through(model, [:x1, :x3], [0:1, 0:0], transmission_order)
     q = not_through(model, [:x1, :x3], [0:1, 0:0], transmission_order)
+
+    transmission_effect = transmission(model, method, 1, q, transmission_order, maximum(horizons))
 end

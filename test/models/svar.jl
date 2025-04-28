@@ -257,11 +257,15 @@ end
     transmission_effects = transmission(model, 1, q, transmission_order, 3)
 
     get_variable_names(model)
-    q = not_through(model, :Y2, [0], [:Y1, :Y3, :Y2])
-    q = through(model, :Y2, [0], [:Y1, :Y3, :Y2])
-    q = not_through(model, [:Y1, :Y3], 0:1, [:Y1, :Y3, :Y2])
-    q = through(model, [:Y1, :Y3], 0:1, [:Y1, :Y3, :Y2])
-    q = not_through(model, [:Y1, :Y3], 0:1, [:Y1, :Y3, :Y2])
-    q = through(model, [:Y1, :Y3], [0:1, 0:0], [:Y1, :Y3, :Y2])
-    q = not_through(model, [:Y1, :Y3], [0:1, 0:0], [:Y1, :Y3, :Y2])
+    transmission_order = [:Y1, :Y3, :Y2]
+    q = not_through(model, :Y2, [0], transmission_order)
+    q = through(model, :Y2, [0], transmission_order)
+    q = not_through(model, [:Y1, :Y3], 0:1, transmission_order)
+    q = through(model, [:Y1, :Y3], 0:1, transmission_order)
+    q = not_through(model, [:Y1, :Y3], 0:1, transmission_order)
+    q = through(model, [:Y1, :Y3], [0:1, 0:0], transmission_order)
+    q = not_through(model, [:Y1, :Y3], [0:1, 0:0], transmission_order)
+
+    q = not_through(model, :Y2, [0], transmission_order)
+    transmission_effects = transmission(model, 1, q, transmission_order, 3)
 end

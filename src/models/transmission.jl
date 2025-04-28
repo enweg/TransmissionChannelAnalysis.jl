@@ -60,6 +60,19 @@ end
                  order::AbstractVector{<:Int}, 
                  max_horizon::Int) --> Array{<:Number, 3}
 
+    transmission(model::Model, 
+                 from::Int, 
+                 q::Q, 
+                 order::AbstractVector{Symbol}, 
+                 max_horizon::Int) --> Array{<:Number, 3}
+
+    transmission(model::Model, 
+                 method::AbstractIdentificationMethod, 
+                 from::Int, 
+                 q::Q,
+                 order::AbstractVector{Symbol}, 
+                 max_horizon::Int) --> Array{<:Number, 3}
+
 Compute the transmission effect of a transmission channel defined by the 
 condition `q`. If `model` is a reduced-form model, `method` will be used to 
 identify the required structural shock. 
@@ -71,7 +84,9 @@ identify the required structural shock.
 - `from::Int`: Shock number. 
 - `q::Q`: A transmission condition. See also `Q` and `make_condition`. 
 - `order::AbnstractVector{<:Int}`: order of variables defined by the transmission 
-  matrix. 
+  matrix using variable indices. 
+- `order::AbnstractVector{Symbol}`: order of variables defined by the transmission 
+  matrix using variable names. 
 - `max_horizon::Int`: Maximum horizon for the transmission effect.  
 
 ## Returns
@@ -79,6 +94,32 @@ identify the required structural shock.
   to the endogenous variables (in original order), the second to the shock, 
   and the third to the horizon (from 0 to `max_horizon`).
 """
+function transmission(
+    model::Model, 
+    from::Int, 
+    q::Q, 
+    order::AbstractVector{Symbol}, 
+    max_horizon::Int
+)
+
+    data = get_input_data(model)
+    idx_order = _find_variable_idx.(order, [data])
+    return transmission(model, from, q, idx_order, max_horizon)
+end
+function transmission(
+    model::Model, 
+    method::AbstractIdentificationMethod,
+    from::Int, 
+    q::Q, 
+    order::AbstractVector{Symbol}, 
+    max_horizon::Int
+)
+
+    data = get_input_data(model)
+    idx_order = _find_variable_idx.(order, [data])
+    return transmission(model, method, from, q, idx_order, max_horizon)
+end
+
 function transmission(
     model::SVAR,
     from::Int,

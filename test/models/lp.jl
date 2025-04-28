@@ -83,9 +83,9 @@ end
         model_lp = LP(data, treatment, p_large, 0:max_horizon; include_constant=true)
         irfs_lp = TransmissionChannelAnalysis._identify_irfs(model_lp, Recursive(), max_horizon)
 
-        @test maximum(abs, irfs_lp - irfs_svar.irfs[:, treatment:treatment, :] ./ irfs_svar.irfs[treatment, treatment, 1]) < 1e-2
+        @test maximum(abs, irfs_lp[:, treatment:treatment, :] - irfs_svar.irfs[:, treatment:treatment, :] ./ irfs_svar.irfs[treatment, treatment, 1]) < 1e-2
         # for contemporaneous horizon they have to be the same
-        @test maximum(abs, irfs_lp[:, :, 1] - irfs_svar.irfs[:, treatment:treatment, 1] ./ irfs_svar.irfs[treatment, treatment, 1]) < sqrt(eps())
+        @test maximum(abs, irfs_lp[:, treatment:treatment, 1] - irfs_svar.irfs[:, treatment:treatment, 1] ./ irfs_svar.irfs[treatment, treatment, 1]) < sqrt(eps())
 
         # testing only sub-horizons
         model_lp = LP(data, treatment, p_large, [0, 4, 8]; include_constant=true)
@@ -154,8 +154,7 @@ end
 
     model_svar = simulate(SVAR, shocks, A0, A_plus; trend_exponents=trend_exponents)
     data = get_input_data(model_svar)
-    data[!, :instrument] = shocks[1, :]
-    select!(data, :instrument, :Y1, :)
+    data_instruments = DataFrame(:instrument => shocks[1, :])
 
     max_horizon = 3
     m = length(trend_exponents)
@@ -164,33 +163,28 @@ end
 
     treatment = :Y1
     model = LP(data, :Y1, p, 0:max_horizon; include_constant=true)
-    method = ExternalInstrument(treatment, [1])
+    method = ExternalInstrument(treatment, data_instruments)
     irfs_lp = TransmissionChannelAnalysis._identify_irfs(model, method, max_horizon)
-    irfs_lp = irfs_lp[2:end, :, :]
+    irfs_lp = irfs_lp[:, 1:1, :]
     @test maximum(abs, irfs_lp - irfs_true) < 1e-2
 
     # creating more than one instrument
-    data[!, :instrument2] = shocks[1, :] + 0.1 * randn(T)
-    data[!, :instrument3] = shocks[1, :] + 0.1 * randn(T)
-    data[!, :instrument4] = shocks[1, :] + 0.1 * randn(T)
-    select!(data, r"instrument", :Y1, :)
+    data_instruments[!, :instrument2] = shocks[1, :] + 0.1 * randn(T)
+    data_instruments[!, :instrument3] = shocks[1, :] + 0.1 * randn(T)
+    data_instruments[!, :instrument4] = shocks[1, :] + 0.1 * randn(T)
 
     treatment = :Y1
     model = LP(data, :Y1, p, 0:max_horizon; include_constant=true)
-    method = ExternalInstrument(treatment, 1:4)
+    method = ExternalInstrument(treatment, data_instruments)
     irfs_lp = TransmissionChannelAnalysis._identify_irfs(model, method, max_horizon)
-    irfs_lp = irfs_lp[5:end, :, :]
+    irfs_lp = irfs_lp[:, 1:1, :]
     @test maximum(abs, irfs_lp - irfs_true) < 1e-2
 
-    select!(data, r"Y")
-    data[!, :instrument] = shocks[1, :]
-    select!(data, :instrument, :Y1, :)
-
     model = LP(data, :Y1, p, 0:max_horizon; include_constant=true)
-    method = ExternalInstrument(treatment, [1]; normalising_horizon=1)
+    method = ExternalInstrument(treatment, data_instruments; normalising_horizon=1)
     irfs_lp = TransmissionChannelAnalysis._identify_irfs(model, method, max_horizon)
     # The Y1 irf is no-longer the same as SVAR IRF because Y1 is lead by 1
-    irfs_lp = irfs_lp[2:end, :, :]
+    irfs_lp = irfs_lp[:, 1:1, :]
 
     irfs_true = TransmissionChannelAnalysis._svar_irf(A0, A_plus[:, (m+1):end], p, max_horizon)
     irfs_true = irfs_true[1:end, 1:1, :] ./ irfs_true[1, 1, 2]
@@ -220,7 +214,8 @@ end
     # Oviously the first variable is not a valid instrument, but we are 
     # really just testing whether the function runs. We are not testing for 
     # correctness. That is done elsewhere. 
-    method = ExternalInstrument(2, [1])
+    data_instruments = DataFrame(:instrument => randn(T))
+    method = ExternalInstrument(2, data_instruments)
     transmission_effect = transmission(model, method, 1, q, transmission_order, maximum(horizons))
 
 end

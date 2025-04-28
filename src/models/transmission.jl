@@ -167,8 +167,7 @@ function transmission(
     data = get_input_data(model)
     k = size(data, 2)
 
-    irfs = fill(eltype(data[!, 1])(NaN), k, k, max_horizon + 1)
-    irfs[:, 1:1, :] .= _identify_irfs(model, method, max_horizon)
+    irfs = _identify_irfs(model, method, max_horizon)
     # re-ordering according to transmission ordering
     irfs = irfs[order, :, :]
     # Getting orthogonalised IRFs via a recursive identification method 
@@ -176,7 +175,7 @@ function transmission(
     irfs_ortho = zeros(eltype(irfs), k, k, max_horizon + 1)
     for treatment = 1:k
         model_tmp = LP(data[:, order], treatment, model.p, 0:max_horizon; include_constant=model.include_constant)
-        irfs_ortho[:, treatment:treatment, :] .= _identify_irfs(model_tmp, Recursive(), max_horizon)
+        irfs_ortho[:, treatment:treatment, :] .= _identify_irfs(model_tmp, Recursive(), max_horizon)[:, treatment:treatment, :]
     end
 
     irfs = to_transmission_irfs(irfs)

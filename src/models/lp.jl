@@ -311,38 +311,27 @@ function _2sls(
 end
 
 function fit!(model::LP, method::ExternalInstrument)
-    idxs_instruments = _find_variable_idx.(method.instruments, [model.data])
     idx_treatment = _find_variable_idx(model.treatment, model.data)
     idx_treatment_instrument = _find_variable_idx(method.treatment, model.data)
-    all(idxs_instruments .< idx_treatment) || error("Instruments must come before treatment variable in data.")
     idx_treatment == idx_treatment_instrument || error("LP and ExternalInstrument treatment variable differ.")
+    size(method.instruments, 1) == size(get_input_data(model), 1) || error("External instruments do not span the same period as model data.")
 
+    Z = method.instruments[(model.p+1):end, :]
     m = model.include_constant
-    # X = [constant contemporaneous lags]
-    # Z can be extracted from contemporaneous
-    Z = model.X[:, idxs_instruments.+m]
-    # Now exclude them from X
-    X = model.X[:, filter(x -> !(x in idxs_instruments .+ m), 1:size(model.X, 2))]
-    # the treatment index also changes
-    # since treatment is always the last contemporanous variable 
-    # all we need to know is how many instruments we remove from that block
-    model.treatment = idx_treatment - length(idxs_instruments)
-
     if method.normalising_horizon > 0
         # lead the treatment column in X to adjust for which horizon 
         # the unit effect normalisation applies to
         nlead = method.normalising_horizon
-        X[:, model.treatment+m] .= make_lead_matrix(X[:, model.treatment+m], nlead)
+        model.X[:, idx_treatment+m] .= make_lead_matrix(model.X[:, idx_treatment+m], nlead)
         # remove NaNs at end of data
-        X = X[1:(end-nlead), :]
+        model.X = model.X[1:(end-nlead), :]
         model.Y = model.Y[1:(end-nlead), :, :]
         Z = Z[1:(end-nlead), :]
     end
-    model.X = X
 
     # Adding all other exogenous variables to Z
     # these are all variables that are not the treatment variable
-    Z = hcat(Z, X[:, filter(!=(model.treatment + m), 1:size(X, 2))])
+    Z = hcat(Z, model.X[:, setdiff(1:size(model.X, 2), idx_treatment + m)])
 
     type = eltype(model.X)
     k = size(model.Y, 2)
@@ -393,7 +382,11 @@ function _identify_irfs(model::LP, ::Recursive, max_horizon::Int)
     model.horizons == 0:max_horizon || error("LP horizons do not match IRF horizons.")
     is_fitted(model) || fit!(model, Recursive())
 
-    irfs = coeffs(model, true)[:, model.treatment:model.treatment, :]
+    data = get_input_data(model)
+    k = size(data, 2)
+    idx_treatment = _find_variable_idx(model.treatment, data)
+    irfs = fill(NaN, k, k, max_horizon + 1)
+    irfs[:, idx_treatment:idx_treatment, :] = coeffs(model, true)[:, idx_treatment:idx_treatment, :]
     return irfs
 end
 
@@ -401,7 +394,11 @@ function _identify_irfs(model::LP, method::ExternalInstrument, max_horizon::Int)
     model.horizons == 0:max_horizon || error("LP horizons do not match IRF horizons.")
     is_fitted(model) || fit!(model, method)
 
-    irfs = coeffs(model, true)[:, model.treatment:model.treatment, :]
+    data = get_input_data(model)
+    idx_treatment = _find_variable_idx(model.treatment, data)
+    k = size(data, 2)
+    irfs = fill(NaN, k, k, max_horizon + 1)
+    irfs[:, idx_treatment:idx_treatment, :] = coeffs(model, true)[:, idx_treatment:idx_treatment, :]
     return irfs
 end
 

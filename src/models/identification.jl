@@ -162,39 +162,44 @@ https://doi.org/10.1111/ecoj.12593
 
 # Fields
 - `treatment::Union{Symbol, Int}`: the variable used to normalise the IRF
-- `instruments::Union{AbstractVector{<:Symbol}, AbstractVector{<:Int}}`:
-  a vector of variables used as external instruments
+- `instruments::AbstractMatrix`: matrix of external instruments
 - `normalising_horizon::Int`: the horizon at which the IRF of the treatment
   variable is set to one
 
 """
 struct ExternalInstrument <: AbstractIdentificationMethod
     treatment::Union{Symbol, Int}
-    instruments::Union{AbstractVector{<:Symbol},AbstractVector{<:Int}}
+    instruments::AbstractMatrix
     normalising_horizon::Int
 end
 
 """
     ExternalInstrument(treatment::Union{Symbol, Int},
-                       instruments::Union{Symbol, Int,
-                                          AbstractVector{<:Symbol},
-                                          AbstractVector{<:Int}};
+                       instruments::Union{AbstractMatrix, DataFrame};
                        normalising_horizon::Int=0)
 
 Constructs an `ExternalInstrument` identification method using a specified
 `treatment` variable, one or more external instruments, and an optional
 normalisation horizon (default is 0).
 
-If a single instrument is provided, it is automatically wrapped in a vector.
+## Arguments 
+- `treatment::Union{Symbol, Int}`: treatment variable in the model data specified 
+  either as the column index in the data or by variable name. 
+- `instruments::Union{AbstractMatrix, DataFrame}`: observations of external 
+  instruments. Instruments must be observed over the same period as the model data. 
+
+## Keyword Arguments 
+- `normalising_horizon::Int`: horizon of the treatment variable with respect to 
+  which all IRFs are normalised. 
 """
 function ExternalInstrument(
     treatment::Union{Symbol, Int},
-    instruments::Union{Symbol,Int,AbstractVector{<:Symbol},AbstractVector{<:Int}};
+    instruments::Union{AbstractMatrix, DataFrame};
     normalising_horizon::Int=0
 )
 
-    if !isa(instruments, AbstractVector)
-        instruments = [instruments]
+    if isa(instruments, DataFrame)
+        instruments = Matrix(instruments)
     end
 
     return ExternalInstrument(treatment, instruments, normalising_horizon)
@@ -205,7 +210,7 @@ function Base.show(io::IO, ::MIME"text/plain", x::ExternalInstrument)
         External Instrument Identificaton Method 
         ========================================
         Treatment: $(x.treatment)
-        Instruments: $(x.instruments)
+        Number of Instruments: $(size(x.instruments, 2))
         Unit effect normalisation horizon: $(x.normalising_horizon)
         """
     println(io, s)

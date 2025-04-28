@@ -90,10 +90,26 @@ The best model has the smallest `selection_function` value, where
 """
 function fit_and_select! end
 
+"""
+    get_variable_names(model::Model) --> Vector{Symbol}
+Obtain the variable names of the model's input data.
+"""
 function get_variable_names(model::Model)
     return Symbol.(names(get_input_data(model)))
 end
 
+"""
+    through(
+        model::Model, 
+        variables::Union{AbstractVector{Symbol}, Symbol}, 
+        horizons::Union{AbstractVector{<:Int},Vector{<:AbstractVector{<:Int}}}, 
+        order::AbstractVector{Symbol}
+    ) --> Q
+
+Define a transmission channel through `variables` for `horizons`. Contrary to 
+the other `through` methods, `variables` and `order` are defined using the 
+variable names of the model -- other `through` methods use indices. 
+"""
 function through(
     model::Model, 
     variables::Union{AbstractVector{Symbol}, Symbol}, 
@@ -110,6 +126,19 @@ function through(
     idx_order = _find_variable_idx.(order, [data])
     return through(idx, horizons, idx_order)
 end
+
+"""
+    not_through(
+        model::Model, 
+        variables::Union{AbstractVector{Symbol}, Symbol}, 
+        horizons::Union{AbstractVector{<:Int},Vector{<:AbstractVector{<:Int}}}, 
+        order::AbstractVector{Symbol}
+    ) --> Q
+
+Define a transmission channel not through `variables` for `horizons`. Contrary to 
+the other `not_through` methods, `variables` and `order` are defined using the 
+variable names of the model -- other `not_through` methods use indices. 
+"""
 function not_through(
     model::Model, 
     variables::Union{AbstractVector{Symbol}, Symbol}, 

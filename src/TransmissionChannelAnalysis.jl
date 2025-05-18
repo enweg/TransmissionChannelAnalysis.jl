@@ -31,16 +31,16 @@ export AbstractIdentificationMethod, Recursive
 export InternalInstrument, ExternalInstrument
 include("./models/tools.jl")
 export IRF
-include("./models/var.jl")
+include("./models/var/var.jl")
 export VAR, coeffs, cov, fitted, residuals, nobs, get_dependent, get_independent
 export get_input_data, is_structural, is_fitted, is_stable
 export aic, hqc, sic, bic
 export fit!, fit_and_select!
 export simulate!, simulate
-include("./models/svar.jl")
+include("./models/svar/svar.jl")
 export SVAR
 export identify, identify!
-include("./models/lp.jl")
+include("./models/lp/lp.jl")
 export LP
 include("./models/transmission.jl")
 

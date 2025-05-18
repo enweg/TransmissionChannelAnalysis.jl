@@ -72,6 +72,28 @@ end
     pca, ic_table = select_factors!(pca, m+2, BaiNgIC3)
     @test size(pca.F, 2) == m
 
+    # adding a tiny bit of errors
+    Random.seed!(6150533)
+    T = 10_000
+    m = 3
+    n = 20
+    F = randn(T, m)
+    lambda = randn(n, m)
+    X = F * lambda' + 0.1 * randn(T, n)
+    pca = PCA(X, 1)
+    pca, ic_table = select_factors!(pca, m+2, BaiNgPC1)
+    @test size(pca.F, 2) == m
+    pca, ic_table = select_factors!(pca, m+2, BaiNgPC2)
+    @test size(pca.F, 2) == m
+    pca, ic_table = select_factors!(pca, m+2, BaiNgPC3)
+    @test size(pca.F, 2) == m
+    pca, ic_table = select_factors!(pca, m+2, BaiNgIC1)
+    @test size(pca.F, 2) == m
+    pca, ic_table = select_factors!(pca, m+2, BaiNgIC2)
+    @test size(pca.F, 2) == m
+    pca, ic_table = select_factors!(pca, m+2, BaiNgIC3)
+    @test size(pca.F, 2) == m
+
     # Below is just a check if it also runs if there is some noise
     # No official test is being run. 
     # Consider this an implementation test.

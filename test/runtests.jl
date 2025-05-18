@@ -48,3 +48,7 @@ end
 @testset "LP" begin
     include("./models/lp.jl")
 end
+
+@testset "DFM" begin
+    include("./models/dfm.jl")
+end

@@ -105,7 +105,7 @@ function TransmissionChannelAnalysis.plot_decomposition(
     fig = Figure()
     ax = Axis(fig[1, 1]; title=title)
 
-    ax = plot_decomposition!(idx_outcome, irfs, teffects, channel_names; colors=colors)
+    ax = plot_decomposition!(ax, idx_outcome, irfs, teffects, channel_names; colors=colors)
 
     if legend
         elements = [PolyElement(polycolor=colors[i]) for i = 1:length(teffects)]
@@ -163,9 +163,10 @@ function TransmissionChannelAnalysis.plot_decomposition!(
 )
 
     max_horizon = size(irfs, 3) - 1
+    horizons = 0:max_horizon
     tbl = (;
         x=horizons,
-        total=total[idx_outcome, 1, :],
+        total=irfs[idx_outcome, 1, :],
         x_bar=repeat(horizons, length(teffects)),
         decomposition=reduce(vcat, te[idx_outcome, 1, :] for te in teffects),
         grp=repeat(1:length(teffects); inner=length(horizons))

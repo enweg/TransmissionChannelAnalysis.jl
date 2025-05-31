@@ -105,7 +105,7 @@ function TransmissionChannelAnalysis.plot_decomposition(
     fig = Figure();
     ax = Axis(fig[1, 1]; title=title);
 
-    ax = plot_decomposition!(idx_outcome, irfs, teffects, channel_names; kwargs...)
+    ax = plot_decomposition!(idx_outcome, irfs, teffects, channel_names; colors=colors)
 
     if legend
         elements = [PolyElement(polycolor=colors[i]) for i = 1:length(teffects)]

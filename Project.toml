@@ -1,7 +1,7 @@
 name = "TransmissionChannelAnalysis"
 uuid = "d500094b-e8d7-4ee4-9514-4e3996dd73c3"
 authors = ["Enrico Wegner"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"

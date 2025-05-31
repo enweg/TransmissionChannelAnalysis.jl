@@ -95,15 +95,15 @@ fig, ax = plot_decomposition(...)
 function TransmissionChannelAnalysis.plot_decomposition(
     idx_outcome::Int,
     irfs::AbstractArray{<:Number,3},
-    teffects::Vector{<:AbstractArray{<:Number, 3}},
+    teffects::Vector{<:AbstractArray{<:Number,3}},
     channel_names::AbstractVector{<:String};
     title::String="",
     legend::Bool=false,
     colors=wong_colors()
 )
 
-    fig = Figure();
-    ax = Axis(fig[1, 1]; title=title);
+    fig = Figure()
+    ax = Axis(fig[1, 1]; title=title)
 
     ax = plot_decomposition!(idx_outcome, irfs, teffects, channel_names; colors=colors)
 
@@ -156,8 +156,8 @@ into the axis `ax`.
 function TransmissionChannelAnalysis.plot_decomposition!(
     ax::Axis,
     idx_outcome::Int,
-    irfs::AbstractArray{<:Number},
-    teffects::Vector{<:AbstractArray{<:Number, 3}},
+    irfs::AbstractArray{<:Number,3},
+    teffects::Vector{<:AbstractArray{<:Number,3}},
     channel_names::AbstractVector{<:String};
     colors=wong_colors()
 )

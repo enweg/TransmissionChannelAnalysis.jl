@@ -97,7 +97,9 @@ function TransmissionChannelAnalysis.plot_decomposition(
     irfs::AbstractArray{<:Number,3},
     teffects::Vector{<:AbstractArray{<:Number, 3}},
     channel_names::AbstractVector{<:String};
-    kwargs...
+    title::String="",
+    legend::Bool=false,
+    colors=wong_colors()
 )
 
     fig = Figure();
@@ -128,8 +130,6 @@ end
         irfs::AbstractArray{<:Number,3},
         teffects::Vector{<:AbstractArray{<:Number,3}},
         channel_names::AbstractVector{<:String};
-        title::String="",
-        legend::Bool=false,
         colors=wong_colors()
     ) -> TCAPlot
 
@@ -150,13 +150,8 @@ into the axis `ax`.
 
 # Keyword Arguments
 
-- `title::String`: Optional figure title.
-- `legend::Bool`: Whether to plot a legend.
 - `colors`: Colors for the decomposition bars (default: Wong colors).
 
-# Returns
-
-- A `TCAPlot` that includes the figure and axis for further styling.
 """
 function TransmissionChannelAnalysis.plot_decomposition!(
     ax::Axis,
@@ -164,7 +159,6 @@ function TransmissionChannelAnalysis.plot_decomposition!(
     irfs::AbstractArray{<:Number},
     teffects::Vector{<:AbstractArray{<:Number, 3}},
     channel_names::AbstractVector{<:String};
-    title="",
     colors=wong_colors()
 )
 

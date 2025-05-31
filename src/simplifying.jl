@@ -270,7 +270,14 @@ calculation method.
 """
 function (!)(q1::Q)
     if length(q1.vars) == 1 && count(r"x\d+", q1.vars[1]) == 1
-        vars = "!$(q1.vars[1])"
+        num_not = count("!", q1.vars[1])
+        if  num_not == 0
+            vars = "!$(q1.vars[1])"
+        elseif num_not == 1
+            vars = replace(q1.vars[1], "!" => "")
+        else 
+            throw(ArgumentError("Transmission condition is not valid."))
+        end
         return Q(vars, q1.multiplier[1])
     end
     vars = vcat([""], q1.vars)

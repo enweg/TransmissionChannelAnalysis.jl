@@ -46,7 +46,7 @@ include("./models/transmission.jl")
 
 # Plotting
 include("./plots.jl")
-export plot_decomposition, plot_decomposition!
+export plot_decomposition, plot_decomposition!, add_decomposition_legend!
 
 
 end

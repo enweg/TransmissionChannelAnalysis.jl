@@ -2,7 +2,7 @@ module CairoMakieExt
 
 using TransmissionChannelAnalysis
 using CairoMakie: scatterlines!, barplot!, xlims!, PolyElement, LineElement,
-    MarkerElement, Legend, Figure, Axis
+    MarkerElement, Legend, Figure, Axis, GridPosition
 using Makie: wong_colors
 
 """
@@ -108,16 +108,7 @@ function TransmissionChannelAnalysis.plot_decomposition(
     ax = plot_decomposition!(ax, idx_outcome, irfs, teffects, channel_names; colors=colors)
 
     if legend
-        elements = [PolyElement(polycolor=colors[i]) for i = 1:length(teffects)]
-        elements = vcat([[LineElement(color=:black), MarkerElement(marker=:circle, color=:black)]], elements)
-        Legend(
-            fig[2, :],
-            elements,
-            vcat(["Total"], channel_names),
-            "Effect";
-            orientation=:horizontal,
-            framevisible=false
-        )
+        add_decomposition_legend!(fig[2, :], channel_names; colors=colors)
     end
 
     return TCAPlot(fig, ax)
@@ -178,4 +169,51 @@ function TransmissionChannelAnalysis.plot_decomposition!(
 
     return ax
 end
+
+"""
+    add_decomposition_legend!(
+        gp::GridPosition, 
+        channel_names::AbstractVector{<:String}; 
+        colors=wong_colors()
+    ) -> Legend
+
+Add a legend to a decomposition plot. 
+
+The decomposition plot can be created using `plot_decomposition` or 
+`plot_decomposition!`. 
+
+# Arguments
+
+- `gp::GridPosition`: Position to plot the legend into. 
+- `channel_names::AbstractVector{<:String}`: Names of the transmission
+  channels.
+
+# Keyword Arguments
+
+- `colors`: Colors for the decomposition bars (default: Wong colors).
+
+# Returns 
+
+- A `Legend` object that can be further manipulated. 
+"""
+function TransmissionChannelAnalysis.add_decomposition_legend!(
+    gp::GridPosition, 
+    channel_names::AbstractVector{<:String}; 
+    colors=wong_colors()
+)
+
+    elements = [PolyElement(polycolor=colors[i]) for i = 1:length(channel_names)]
+    elements = vcat([[LineElement(color=:black), MarkerElement(marker=:circle, color=:black)]], elements)
+    lgd = Legend(
+        gp,
+        elements,
+        vcat(["Total"], channel_names),
+        "Effect";
+        orientation=:horizontal,
+        framevisible=false
+    )
+
+    return lgd 
+end
+
 end

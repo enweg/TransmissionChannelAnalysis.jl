@@ -44,5 +44,9 @@ include("./models/lp.jl")
 export LP
 include("./models/transmission.jl")
 
+# Plotting
+include("./plots.jl")
+export plot_decomposition, plot_decomposition!
+
 
 end

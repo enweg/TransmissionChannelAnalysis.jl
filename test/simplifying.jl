@@ -111,4 +111,14 @@ end
     @test length(q.vars) == 1
     @test "!x2 & !x1" in q.vars
     @test q.multiplier[1] == 1
+
+    # As recommended in #6
+    q = !x[1]
+    q2 = !q
+    @test length(q.vars) == 1
+    @test length(q2.vars) == 1
+    @test q.vars[1] == "!x1"
+    @test q2.vars[1] == "x1"
+    @test q.multiplier[1] == 1
+    @test q2.multiplier[1] == 1
 end

@@ -52,5 +52,11 @@ export PCA, DynamicDFM, StaticDFM, BaiNgPC1, BaiNgPC2, BaiNgPC3, BaiNgIC1,
 
 include("./models/transmission.jl")
 
+# Plotting
+include("./plots.jl")
+export plot_decomposition, plot_decomposition!, add_decomposition_legend!, 
+       plot_decomposition_comparison!, plot_decomposition_comparison, 
+       add_decompare_legend!
+
 
 end

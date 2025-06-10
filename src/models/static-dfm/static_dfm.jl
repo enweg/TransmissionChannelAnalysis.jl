@@ -157,8 +157,7 @@ function fit!(model::DFM; atol::Real=sqrt(eps()))
     pca = PCA(Y, model.r)
     F = factors(pca)
     model.F = F
-    Lambda = loadings(pca)
-    model.Lambda = Lambda
+    model.Lambda = loadings(pca)
     model.Yhat = fitted(pca)
     model.eta_hat = residuals(pca)
 
@@ -168,4 +167,22 @@ function fit!(model::DFM; atol::Real=sqrt(eps()))
     model.factor_var = factor_var
 
     return model
+end
+
+# TODO: implement fit_and_select!
+
+#-------------------------------------------------------------------------------
+# IMPURLSE RESPONSE FUNCTIONS
+#-------------------------------------------------------------------------------
+
+function IRF(model::DFM, max_horizon::Int)
+    require_fitted(model)
+
+    factor_var = get_factor_var(model)
+    factor_irfs = IRF(factor_var, max_horizon).irfs
+    Lambda = loadings(model)
+    variable_irfs = mapslices(x -> Lambda * x, factor_irfs; dims=(1, 2))
+    varnames = Symbol.(names(get_input_data(model)))
+    factornames = Symbol.("F" .* string.(1:size(factor_irfs, 1)))
+    return IRF(variable_irfs, varnames, model), IRF(factor_irfs, factornames, model)
 end

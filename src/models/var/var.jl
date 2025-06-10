@@ -1,5 +1,6 @@
 using LinearAlgebra
 using DataFrames
+import Statistics: cov
 
 """
     VAR <: Model

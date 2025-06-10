@@ -56,6 +56,7 @@ is_fitted(model::DFM) = size(model.Yhat, 1) >= 1 &&
                         (!isnothing(model.factor_var) ||
                          is_fitted(model.factor_var))
 is_structural(model::DFM) = false
+is_stable(model::DFM) = require_fitted(model) && is_stable(model.factor_var)
 
 """
 Returns (Lambda, VAR coeffs)

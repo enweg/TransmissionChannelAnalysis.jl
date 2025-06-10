@@ -46,7 +46,8 @@ end
 is_fitted(model::SDFM) = size(model.Yhat, 1) >= 1 &&
                          (!isnothing(model.factor_svar) ||
                           is_fitted(model.factor_svar))
-is_structural(model::SDFM) = false
+is_structural(model::SDFM) = true
+is_stable(model::SDFM) = require_fitted(model) && is_stable(model.factor_svar)
 
 """
 Returns (Lambda, SVAR coeffs)
@@ -61,6 +62,8 @@ factors(model::SDFM) = require_fitted(model) && model.F
 loadings(model::SDFM) = require_fitted(model) && model.Lambda
 residuals(model::SDFM) = require_fitted(model) &&
                          (model.eta_hat, residuals(model.factor_svar))
+
+shocks(model::SDFM) = require_fitted(model) && shocks(model.factor_svar)
 
 nobs(model::SDFM) = size(model.Y, 1)
 get_dependent(model::SDFM) = model.Y

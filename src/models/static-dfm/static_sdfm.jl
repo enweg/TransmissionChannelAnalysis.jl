@@ -121,3 +121,12 @@ function simulate(
         trend_exponents=trend_exponents, initial_F=initial_F
     )
 end
+
+#-------------------------------------------------------------------------------
+# ESTIMATION AND IDENTICATION FUNCTIONS
+#-------------------------------------------------------------------------------
+
+_named_factor_info(n::Int) = @info("Using named-factor normalisation for structural DFM esitmation.\nThe first $n variables are treated as the normalising variabels.")
+
+# TODO: implement Recursive identification
+# TODO: implement external instrument identification for SVAR + SDFM

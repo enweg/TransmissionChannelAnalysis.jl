@@ -38,7 +38,7 @@ matrix form:
 where:
 - ``Y``: an ``(T - p) \\times k`` matrix of outcomes
 - ``X``: an ``(T - p) \\times (k p + d)`` matrix of regressors (lags and trends)
-- ``B_+``: a ``k \\times (kp + d)`` matrix of coefficients where ``d`` is the 
+- ``B_+``: a ``k \\times (kp + d)`` matrix of coefficients where ``d`` is the
   number of deterministic components.
 - ``U``: a ``(T - p) \\times k`` matrix of residuals
 
@@ -120,7 +120,7 @@ end
         trend_exponents::Vector{<:Number} = [0])
 
 Constructs a `VAR` model object with data, lag length `p`, and
-specified time trend exponents. Coefficients and residuals are uninitialised 
+specified time trend exponents. Coefficients and residuals are uninitialised
 but can be estimed using `fit!`.
 
 # Arguments
@@ -199,12 +199,12 @@ A = \\begin{bmatrix}
     B_1 & B_2 & ... & B_p \\\\
     I_k & 0   & ... & 0   \\\\
     0   & I_k & ... & 0   \\\\
-    ... & ... & ... & ... 
+    ... & ... & ... & ...
 \\end{bmatrix}
 ```
 
 where ``B_1, ..., B_p`` are the VAR coefficient matrices, and ``I_k`` is the
-identity matrix of size `k`. 
+identity matrix of size `k`.
 
 # Arguments
 - `model::VAR`: A fitted VAR model.
@@ -268,16 +268,16 @@ is_stable(model::VAR) = require_fitted(model) && (spectral_radius(model) < 1)
 #-------------------------------------------------------------------------------
 # INFORMATION CRITERIA
 #
-# Beware that when comparing ICs over various lag orders, we must make 
-# sure that they are compared over the same dataset. That is, estimations 
-# with lower p must adjust their Sigma_u estimation to those data points 
+# Beware that when comparing ICs over various lag orders, we must make
+# sure that they are compared over the same dataset. That is, estimations
+# with lower p must adjust their Sigma_u estimation to those data points
 # also used by the highest p. That's the reason for the two types of functions
 # below.
 #
 # ICs for VARs are discussed in Section 2.6. of Kilia & Lütkepohl (2017).
 #
-# Kilian, L., & Lütkepohl, H. (2017). 
-# Structural Vector Autoregressive Analysis: (1st ed.). 
+# Kilian, L., & Lütkepohl, H. (2017).
+# Structural Vector Autoregressive Analysis: (1st ed.).
 # Cambridge University Press. https://doi.org/10.1017/9781108164818
 #-------------------------------------------------------------------------------
 
@@ -394,36 +394,36 @@ end
 """
     fit_and_select!(model::VAR, ic_function::Function=aic) --> (VAR, DataFrame)
 
-Select and estimate a `VAR` model. 
+Select and estimate a `VAR` model.
 
 The best model is determined by the model with the smallest `ic_function` value
-among all models with `p=1:model.p`. Thus, the lag-length of the provided model 
-determines the maximum lag length. 
+among all models with `p=1:model.p`. Thus, the lag-length of the provided model
+determines the maximum lag length.
 
 Available choices for `ic_function` are `aic`, `bic`, `sic`, `hqc`, but user
 defined functions can be provided as long as they have the signature
 `ic_function(Sigma_u::Matrix{<:Number}, num_coeffs::Int, T::Int)`
 where `Sigma_u` is the VAR error covariance matrix, `num_coeffs` is the number
-of estimated coefficients, and `T` is a number of effective observations. 
+of estimated coefficients, and `T` is a number of effective observations.
 
-To be correct, the error covariance matrix of all models is estimated over the 
+To be correct, the error covariance matrix of all models is estimated over the
 same time period. Calling `aic` or other functions on manually estimated models \
-with differing lag-lengths will not compare the models on the same time 
-period -- the model with higher `p` will have fewer effective number of 
-observations`. It is thus recommended to do model comparison via this function. 
+with differing lag-lengths will not compare the models on the same time
+period -- the model with higher `p` will have fewer effective number of
+observations`. It is thus recommended to do model comparison via this function.
 
 # Arguments
-- `model::VAR`: VAR model, where the provided lag-length `p` determines the 
-  maximum lag-length. 
-- `ic_function::Function`: Information criterion function. See the details above. 
-  Default is AIC, since it is generally recommended to go with more rather than 
-  fewer lags. 
+- `model::VAR`: VAR model, where the provided lag-length `p` determines the
+  maximum lag-length.
+- `ic_function::Function`: Information criterion function. See the details above.
+  Default is AIC, since it is generally recommended to go with more rather than
+  fewer lags.
 
 # Returns
-Returns a tuple `(VAR, DataFrame)` where the first element is the best model and 
-the second element is a table with information regarding the `ic_function` value 
-for each estimated model. Note that manually calling `aic` or similar functions 
-on the returned model might not provide that same value, since the covariance 
+Returns a tuple `(VAR, DataFrame)` where the first element is the best model and
+the second element is a table with information regarding the `ic_function` value
+for each estimated model. Note that manually calling `aic` or similar functions
+on the returned model might not provide that same value, since the covariance
 will now be estimated over the full period rather than the common period.
 """
 function fit_and_select!(model::VAR, ic_function::Function=aic)
@@ -470,7 +470,7 @@ end
 #-------------------------------------------------------------------------------
 
 """
-    function _simulate!(                                   # k variables, T periods
+    function _simulate_var!(                                   # k variables, T periods
         errors::AbstractMatrix{M},                         # k × T
         B::AbstractMatrix{M};                              # k × kp+m
         trend_exponents::AbstractVector{<:Real}=[0],       # m × 1
@@ -481,7 +481,7 @@ Simulate a VAR(p) overwriting `errors` with the simulated data.
 """
 
 """
-    _simulate!(errors::Matrix{<:Number},
+    _simulate_var!(errors::Matrix{<:Number},
               B::Matrix{<:Number};
               trend_exponents::Vector{<:Number} = [0],
               initial::Union{Nothing, Vector{<:Number}} = nothing) -> Matrix{<:Number}
@@ -495,17 +495,17 @@ The simulated process follows the structure:
 ```
 
 where the full coefficient matrix is `B = [C B_1 ... B_p]`. The simulation
-accounts for deterministic trends via `trend_exponents`. For example, 
-`trend_exponents=[0,1]` implies that a constant and a linear trend are included. 
+accounts for deterministic trends via `trend_exponents`. For example,
+`trend_exponents=[0,1]` implies that a constant and a linear trend are included.
 
 # Arguments
 - `errors::Matrix{<:Number}`: A `(k × T)` matrix that is overwritten with the
-  simulated data. Initially contains the error terms `u_t`. `k` is the number 
+  simulated data. Initially contains the error terms `u_t`. `k` is the number
   of endogneous variables.
 - `B::Matrix{<:Number}`: The full coefficient matrix of size `(k × (k * p + m))`,
   where `m` is the number of deterministic trend terms.
 - `trend_exponents::Vector{<:Number}`: Exponents of time to model deterministic
-  components (e.g., `[0, 1]` gives constant and linear trend). Default is `[0]`, 
+  components (e.g., `[0, 1]` gives constant and linear trend). Default is `[0]`,
   i.e. a constant.
 - `initial::Union{Nothing, Vector{<:Number}}`: Initial values for lagged variables,
   a vector of length `k * p`. If `nothing`, lags are initialised at zero.
@@ -514,7 +514,7 @@ accounts for deterministic trends via `trend_exponents`. For example,
 - The matrix `errors`, now containing the simulated VAR data.
 
 """
-function _simulate!(                                             # k variables, T periods
+function _simulate_var!(                                             # k variables, T periods
     errors::AbstractMatrix{<:Number},                            # k × T
     B::AbstractMatrix{<:Number};                                 # k × kp+m
     trend_exponents::AbstractVector{<:Number}=[0],               # m × 1
@@ -525,7 +525,7 @@ function _simulate!(                                             # k variables, 
     k, T = size(errors)
     m = length(trend_exponents)
     kp = size(B, 2) - m
-    # needs this check because otherwise we can have wrong dimensions without 
+    # needs this check because otherwise we can have wrong dimensions without
     # getting an error
     kp % k == 0 || error("Dimensions of B are wrong.")
     if isnothing(initial)
@@ -547,14 +547,14 @@ end
 
 # overwrites errors
 function simulate!(                                             # k variables, T periods, p lags
-    ::Type{VAR},                                                  #  
+    ::Type{VAR},                                                  #
     errors::AbstractMatrix{<:Number},                           # k  × T
-    B::AbstractMatrix{<:Number};                                # k  × kp + m 
+    B::AbstractMatrix{<:Number};                                # k  × kp + m
     trend_exponents::AbstractVector{<:Number}=[0],              # m  × 1
     initial::Union{Nothing,AbstractVector{<:Number}}=nothing   # kp × 1
 )
 
-    errors = _simulate!(errors, B; trend_exponents=trend_exponents, initial=initial)
+    errors = _simulate_var!(errors, B; trend_exponents=trend_exponents, initial=initial)
     data = DataFrame(errors', "Y" .* string.(1:size(errors, 1)))
 
     m = length(trend_exponents)
@@ -607,7 +607,7 @@ Generates error terms internally from a Gaussian distribution with covariance
 simulated series.
 
 # Arguments
-- `B::Matrix{<:Number}`: Coefficient matrix `[C B_1 ... B_p]`, size `k × (k * p + m)`, 
+- `B::Matrix{<:Number}`: Coefficient matrix `[C B_1 ... B_p]`, size `k × (k * p + m)`,
   where `m` is the number of deterministic components.
 - `trend_exponents::Vector{<:Number}`: Exponents used to simulate trends
   (e.g. `[0,1]` implies constant and linear trend)
@@ -620,9 +620,9 @@ simulated series.
   filled with innovations, overwritten with simulated data
 
 # Returns
-- `VAR`: A new `VAR` object containing the simulated dataset. The data can 
-  be obtained using `get_input_data`. Alternatively, the model can be directly 
-  estimated using `fit!`. 
+- `VAR`: A new `VAR` object containing the simulated dataset. The data can
+  be obtained using `get_input_data`. Alternatively, the model can be directly
+  estimated using `fit!`.
 """
 simulate, simulate!
 
@@ -633,7 +633,7 @@ simulate, simulate!
 """
     _var_irf(B::Matrix{<:Number}, p::Int, max_horizon::Int) -> Array{<:Number, 3}
 
-Internal function to compute impulse response functions (IRFs) up to 
+Internal function to compute impulse response functions (IRFs) up to
 horizon `max_horizon` from a reduced-form VAR(p) model.
 
 !!! warning

@@ -1,5 +1,6 @@
 using Statistics
 
+using Base: _NAMEDTUPLE_NAME
 mutable struct SDFM <: Model
     # Estimated quantities
     factor_svar::Union{Nothing,SVAR}
@@ -11,6 +12,8 @@ mutable struct SDFM <: Model
     p::Int  # Number of lags in the VAR
     trend_exponents::AbstractVector{<:Number}  # trends for VAR
     r::Int  # Number of static factors
+    scale::Bool  # whether data has been scaled
+    center::Bool # whether data has been centered
 
     # Intermediate data
     Y::AbstractMatrix      # inputs as matrix
@@ -40,7 +43,10 @@ function SDFM(
         Y ./= std(Y; dims=1)
     end
 
-    return SDFM(nothing, Lambda, F, data, p, trend_exponents, r, Y, Yhat, eta_hat)
+    return SDFM(
+        nothing, Lambda, F, data, p, trend_exponents, r, scale, center, Y,
+        Yhat, eta_hat
+    )
 end
 
 is_fitted(model::SDFM) = size(model.Yhat, 1) >= 1 &&
@@ -48,6 +54,8 @@ is_fitted(model::SDFM) = size(model.Yhat, 1) >= 1 &&
                           is_fitted(model.factor_svar))
 is_structural(model::SDFM) = true
 is_stable(model::SDFM) = require_fitted(model) && is_stable(model.factor_svar)
+is_scaled(model::SDFM) = model.scale
+is_centered(model::SDFM) = model.center
 
 """
 Returns (Lambda, SVAR coeffs)
@@ -126,7 +134,29 @@ end
 # ESTIMATION AND IDENTICATION FUNCTIONS
 #-------------------------------------------------------------------------------
 
-_named_factor_info(n::Int) = @info("Using named-factor normalisation for structural DFM esitmation.\nThe first $n variables are treated as the normalising variabels.")
+function fit!(
+    model::SDFM, identification_method::AbstractIdentificationMethod;
+    named_factors::Union{Nothing,AbstractVector{<:Int}}=1:model.r
+)
 
-# TODO: implement Recursive identification
+    data = get_input_data(model)
+    scale = is_scaled(model)
+    center = is_centered(model)
+    model_dfm = DFM(
+        data, model.p, model.r;
+        trend_exponents=model.trend_exponents, scale=scale, center=center
+    )
+    fit!(model_dfm; named_factors=named_factors)
+
+    factor_var = get_factor_var(model_dfm)
+    factor_svar = identify(factor_var, identification_method)
+
+    model.factor_svar = factor_svar
+    model.Lambda = loadings(model_dfm)
+    model.F = factors(model_dfm)
+    model.Yhat = fitted(model_dfm)
+    model.eta_hat, _ = residuals(model_dfm)
+    return model
+end
+
 # TODO: implement external instrument identification for SVAR + SDFM

@@ -42,21 +42,29 @@ export SVAR
 export identify, identify!
 include("./models/lp/lp.jl")
 export LP
-include("./models/dfm/utils.jl")
-include("./models/dfm/abstract.jl")
-include("./models/dfm/pca.jl")
-include("./models/dfm/dynamic/dynamicDFM.jl")
-include("./models/dfm/static/staticDFM.jl")
-export PCA, DynamicDFM, StaticDFM, BaiNgPC1, BaiNgPC2, BaiNgPC3, BaiNgIC1,
-       BaiNgIC2, BaiNgIC3, select_factors!, get_factor_loadings, get_factors
+# include("./models/dfm/utils.jl")
+# include("./models/dfm/abstract.jl")
+# include("./models/dfm/pca.jl")
+# include("./models/dfm/dynamic/dynamicDFM.jl")
+# include("./models/dfm/static/staticDFM.jl")
+# export PCA, DynamicDFM, StaticDFM, BaiNgPC1, BaiNgPC2, BaiNgPC3, BaiNgIC1,
+#        BaiNgIC2, BaiNgIC3, select_factors!, get_factor_loadings, get_factors
+include("models/static-dfm/pca.jl")
+export PCA, BaiNgPC1, BaiNgPC2, BaiNgPC3, BaiNgIC1, BaiNgIC2, BaiNgIC3,
+    select_factors!, factors, loadings
+include("models/static-dfm/static_dfm.jl")
+export DFM, get_factor_var, factors, loadings, is_scaled, is_centered
+include("models/static-dfm/static_sdfm.jl")
+export SDFM
+
 
 include("./models/transmission.jl")
 
 # Plotting
 include("./plots.jl")
-export plot_decomposition, plot_decomposition!, add_decomposition_legend!, 
-       plot_decomposition_comparison!, plot_decomposition_comparison, 
-       add_decompare_legend!
+export plot_decomposition, plot_decomposition!, add_decomposition_legend!,
+    plot_decomposition_comparison!, plot_decomposition_comparison,
+    add_decompare_legend!
 
 
 end

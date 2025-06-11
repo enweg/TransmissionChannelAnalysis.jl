@@ -20,6 +20,8 @@ mutable struct DFM <: Model
     p::Int  # Number of lags in the VAR
     trend_exponents::AbstractVector{<:Number}  # trends for VAR
     r::Int  # Number of static factors
+    scale::Bool  # whether data has been scaled
+    center::Bool  # whether data has been centered
 
     # Intermediate data
     Y::AbstractMatrix      # inputs as matrix
@@ -49,7 +51,10 @@ function DFM(
         Y ./= std(Y; dims=1)
     end
 
-    return DFM(nothing, Lambda, F, data, p, trend_exponents, r, Y, Yhat, eta_hat)
+    return DFM(
+        nothing, Lambda, F, data, p, trend_exponents, r, scale, center,
+        Y, Yhat, eta_hat
+    )
 end
 
 is_fitted(model::DFM) = size(model.Yhat, 1) >= 1 &&
@@ -57,6 +62,8 @@ is_fitted(model::DFM) = size(model.Yhat, 1) >= 1 &&
                          is_fitted(model.factor_var))
 is_structural(model::DFM) = false
 is_stable(model::DFM) = require_fitted(model) && is_stable(model.factor_var)
+is_scaled(model::DFM) = model.scale
+is_centered(model::DFM) = model.center
 
 """
 Returns (Lambda, VAR coeffs)
@@ -144,18 +151,29 @@ be achieved by creating the `DFM` with keyword arguments `center=true` and
 - `model::DFM`: A Dynamic Factor Model with static factors
 
 # Keyword Arguments
+- `named_factors::Union{Nothing,AbstractVector{<:Int}}`: If `nothing`, factors
+  will not be normalised. If `AbstractVector{<:Int}` factors will be named using
+  the variables at indices provided.
 - `atol::Real`: Absolute tolerance for the scale and center check
 
 # Notes
 - The DFM is estimated in static form using `PCA`.
 """
-function fit!(model::DFM; atol::Real=sqrt(eps()))
+function fit!(
+    model::DFM;
+    atol::Real=sqrt(eps()),
+    named_factors::Union{Nothing,AbstractVector{<:Int}}=nothing
+)
     Y = get_dependent(model)
     all(isapprox.(std(Y; dims=1), 1.0; atol=atol)) ||
         throw(ArgumentError("Data must be scaled first."))
     all(isapprox.(mean(Y; dims=1), 0.0; atol=atol)) || throw(ArgumentError("Data must be centered first."))
 
     pca = PCA(Y, model.r)
+    if !isnothing(named_factors)
+        apply_named_factors!(pca; naming_idx=named_factors)
+    end
+
     F = factors(pca)
     model.F = F
     model.Lambda = loadings(pca)

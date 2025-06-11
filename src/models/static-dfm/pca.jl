@@ -116,7 +116,32 @@ function select_factors!(pca::PCA, m_max::Int, ic::Function)
     return pca, DataFrame(:number_factors => 1:m_max, :IC => ic_values)
 end
 
-
 # TODO: document
 # Requires CairoMakie to be loaded. In that case PlotsExt will load
 function screeplot end
+
+function apply_named_factors(
+    Lambda::AbstractMatrix{<:Number},  # factor loadings
+    F::AbstractMatrix{<:Number};  # factors
+    naming_idx::AbstractVector{<:Int}=1:size(F, 2)  # naming variables
+)
+    # X_t = Lambda * F_t
+    # X = F * Lambda'
+
+    length(unique(naming_idx)) == size(F, 2) || throw(ArgumentError("Number of naming variables < number of factors."))
+
+    Lambda_1 = Lambda[naming_idx, :]
+    Lambda_1_inv = inv(Lambda_1)
+    Lambda = Lambda * Lambda_1_inv
+    F = F * Lambda_1'
+    return Lambda, F
+end
+
+function apply_named_factors!(pca::PCA; kwargs...)
+    Lambda = loadings(pca)
+    F = factors(pca)
+    Lambda, F = apply_named_factors(Lambda, F; kwargs...)
+    pca.lambda = Lambda
+    pca.F = F
+    return pca
+end

@@ -159,4 +159,34 @@ function fit!(
     return model
 end
 
-# TODO: implement external instrument identification for SVAR + SDFM
+# TODO: implement fit_and_select!
+
+#-------------------------------------------------------------------------------
+# IMPULSE RESPONSE FUNCTIONS
+#-------------------------------------------------------------------------------
+
+function IRF(model::SDFM, max_horizon::Int)
+    require_fitted(model)
+
+    factor_svar = get_factor_svar(model)
+    factor_irfs = IRF(factor_svar, max_horizon).irfs
+    Lambda = loadings(model)
+    variable_irfs = mapslices(x -> Lambda * x, factor_irfs; dims=(1, 2))
+    varnames = Symbol.(names(get_input_data(model)))
+    factornames = Symbol.("F" .* string.(1:model.r))
+    return IRF(variable_irfs, varnames, model), IRF(factor_irfs, factornames, model)
+end
+
+function IRF(model::DFM, method::AbstractIdentificationMethod, max_horizon::Int)
+    require_fitted(model)
+
+    factor_var = get_factor_var(model)
+    factor_irfs = IRF(factor_var, method, max_horizon).irfs
+    Lambda = loadings(model)
+    variable_irfs = mapslices(x -> Lambda * x, factor_irfs; dims=(1, 2))
+    varnames = Symbol.(names(get_input_data(model)))
+    factornames = Symbol.("F" .* string.(1:model.r))
+    return IRF(variable_irfs, varnames, model), IRF(factor_irfs, factornames, model)
+end
+
+# TODO: implement external instrument identification for SVAR

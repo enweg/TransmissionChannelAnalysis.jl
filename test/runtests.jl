@@ -37,6 +37,10 @@ end
 # Models
 #-------------------------------------------------------------------------------
 
+@testset "Model Utils" begin
+    include("./models/utils.jl")
+end
+
 @testset "VAR" begin
     include("./models/var.jl")
 end
@@ -47,8 +51,4 @@ end
 
 @testset "LP" begin
     include("./models/lp.jl")
-end
-
-@testset "DFM" begin
-    include("./models/dfm.jl")
 end

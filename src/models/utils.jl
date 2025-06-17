@@ -317,3 +317,31 @@ function _2sls(
     X_hat = Z * ((Z' * Z) \ (Z' * X))
     return (X_hat' * X_hat) \ (X_hat' * Y)
 end
+
+function _find_nonmissing_period(X::AbstractMatrix)
+    good_obs = map(row -> !any(ismissing.(row)), eachrow(X))
+    bad_obs = (!).(good_obs)
+
+    idx_first = findfirst(good_obs)
+    idx_last = findfirst(bad_obs[(idx_first+1):end])
+    idx_last = isnothing(idx_last) ? size(X, 1) : idx_last + idx_first - 1
+
+    all(good_obs[idx_first:idx_last]) || error("Some values are missing inbetween.")
+
+    return idx_first, idx_last
+end
+
+function _find_data_overlap(mats::AbstractMatrix...)
+    N = size(mats[1], 1)
+    idx_first = 1
+    idx_last = N
+    for mat in mats
+        size(mat, 1) == N || throw(ArgumentError("All matrices must have same number of rows."))
+
+        idx_first_tmp, idx_last_tmp = _find_nonmissing_period(mat)
+        idx_first = max(idx_first, idx_first_tmp)
+        idx_last = min(idx_last, idx_last_tmp)
+    end
+
+    return (mat[idx_first:idx_last, :] for mat in mats)
+end

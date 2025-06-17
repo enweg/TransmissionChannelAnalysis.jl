@@ -82,7 +82,7 @@ residuals(model::DFM) = require_fitted(model) &&
 nobs(model::DFM) = size(model.Y, 1)
 get_dependent(model::DFM) = model.Y
 get_input_data(model::DFM) = model.input_data
-get_factor_var(model::DFM) = model.factor_var
+get_factor_var(model::DFM) = require_fitted(model) && model.factor_var
 
 #-------------------------------------------------------------------------------
 # SIMULATION

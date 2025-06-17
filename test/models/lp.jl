@@ -189,13 +189,13 @@ end
     irfs_true = TransmissionChannelAnalysis._svar_irf(A0, A_plus[:, (m+1):end], p, max_horizon)
     irfs_true = irfs_true[1:end, 1:1, :] ./ irfs_true[1, 1, 2]
 
-    # Estimation is better judged as percentage error here. 
+    # Estimation is better judged as percentage error here.
     @test maximum(abs, (irfs_lp - irfs_true) ./ irfs_true) < 1e-2
 end
 
 @testset "LP transmission implementation" begin
-    # This is just an implementation test. Correctness of intermediate functions 
-    # has been tested elsewhere. 
+    # This is just an implementation test. Correctness of intermediate functions
+    # has been tested elsewhere.
 
     k = 4
     T = 100
@@ -211,9 +211,9 @@ end
     q = make_condition("!y_{1,0} & !y_{1,1}", transmission_order)
     transmission_effect = transmission(model, Recursive(), 1, q, transmission_order, maximum(horizons))
 
-    # Oviously the first variable is not a valid instrument, but we are 
-    # really just testing whether the function runs. We are not testing for 
-    # correctness. That is done elsewhere. 
+    # Oviously the first variable is not a valid instrument, but we are
+    # really just testing whether the function runs. We are not testing for
+    # correctness. That is done elsewhere.
     data_instruments = DataFrame(:instrument => randn(T))
     method = ExternalInstrument(2, data_instruments)
     transmission_effect = transmission(model, method, 1, q, transmission_order, maximum(horizons))

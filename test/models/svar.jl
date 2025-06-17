@@ -71,7 +71,7 @@ end
     Phi0 = inv(A0)
     model_var.Sigma_u = Phi0 * Phi0'
     # and use internal function to get identified params back
-    # because fit!, identify, identify! simply use this function, we do not need 
+    # because fit!, identify, identify! simply use this function, we do not need
     # to test them separately (besides that they run)
     A0_hat, A_plus_hat = TransmissionChannelAnalysis._identify(model_var, Recursive())
     @test maximum(abs, A0_hat - A0) < 1e-6
@@ -232,9 +232,82 @@ end
     @test maximum(abs, irfs_simulated[2:end, 1:1, :] - irfs_true[:, 1:1, :] ./ irfs_true[1, 1, 1]) < 1e-2
 end
 
+@testset "SVAR IRFs ExternalInstrument Identification" begin
+    Random.seed!(123)
+    k = 4
+    p = 2
+    trend_exponents = [0]
+    T = 10_000_000
+    max_horizon = 10
+
+    Phi0 = randn(k, k)
+    A0 = inv(Phi0)
+    # next three steps make sure that diag of A0 is positive
+    S = diagm(sign.(diag(A0)))
+    Phi0 = S' * Phi0
+    A0 = inv(Phi0)
+    B_plus = 0.2 * randn(k, k * p + length(trend_exponents))
+    A_plus = A0 * B_plus
+
+    irfs_true = TransmissionChannelAnalysis._svar_irf(
+        A0, A_plus[:, (length(trend_exponents)+1):end], p, max_horizon
+    )
+    irfs_true = irfs_true ./ irfs_true[1, 1, 1]
+
+    shocks = randn(k, T)
+    model = simulate(SVAR, shocks, A0, A_plus; trend_exponents=trend_exponents)
+
+    data = get_input_data(model)
+    model_var = VAR(data, p; trend_exponents=trend_exponents)
+    fit!(model_var)
+
+    # Instrument is observed over full period
+    instruments = DataFrame(instrument=shocks[1, :])
+    method = ExternalInstrument(1, instruments)
+    irfs_simulated = IRF(model_var, method, max_horizon).irfs
+    @test maximum(abs, irfs_simulated[:, 1:1, :] - irfs_true[:, 1:1, :]) < 1e-3
+
+    # Instrument is missing at the beginning
+    instruments = vcat(fill(missing, 100), shocks[1, 101:end])
+    instruments = DataFrame(instrument=instruments)
+    method = ExternalInstrument(1, instruments)
+    irfs_simulated = IRF(model_var, method, max_horizon).irfs
+    @test maximum(abs, irfs_simulated[:, 1:1, :] - irfs_true[:, 1:1, :]) < 1e-3
+
+    # Instrument is missing at the beginning and end
+    instruments = vcat(fill(missing, 100), shocks[1, 101:(end-100)], fill(missing, 100))
+    instruments = DataFrame(instrument=instruments)
+    method = ExternalInstrument(1, instruments)
+    irfs_simulated = IRF(model_var, method, max_horizon).irfs
+    @test maximum(abs, irfs_simulated[:, 1:1, :] - irfs_true[:, 1:1, :]) < 1e-3
+
+    # Using variable name for normalising variable
+    instruments = vcat(fill(missing, 100), shocks[1, 101:(end-100)], fill(missing, 100))
+    instruments = DataFrame(instrument=instruments)
+    method = ExternalInstrument(:Y1, instruments)
+    irfs_simulated = IRF(model_var, method, max_horizon).irfs
+    @test maximum(abs, irfs_simulated[:, 1:1, :] - irfs_true[:, 1:1, :]) < 1e-3
+
+    # Different normalising variable
+    irfs_true = TransmissionChannelAnalysis._svar_irf(
+        A0, A_plus[:, (length(trend_exponents)+1):end], p, max_horizon
+    )
+    irfs_true = irfs_true ./ irfs_true[2, 1, 1]
+    instruments = vcat(fill(missing, 100), shocks[1, 101:(end-100)], fill(missing, 100))
+    instruments = DataFrame(instrument=instruments)
+    method = ExternalInstrument(:Y2, instruments)
+    irfs_simulated = IRF(model_var, method, max_horizon).irfs
+    # Officially still the first shock we are looking at
+    @test maximum(abs, irfs_simulated[:, 2:2, :] - irfs_true[:, 1:1, :]) < 1e-3
+
+    # Wrong normalising horizon
+    method = ExternalInstrument(:Y1, instruments; normalising_horizon=1)
+    @test_throws ArgumentError irfs_simulated = IRF(model_var, method, max_horizon).irfs
+end
+
 @testset "SVAR transmission implementation" begin
-    # This is just an implementation test. All underlying functions 
-    # have already been tested elsewhere. 
+    # This is just an implementation test. All underlying functions
+    # have already been tested elsewhere.
 
     k = 3
     p = 2

@@ -1,5 +1,6 @@
 """
     SVAR <: Model
+using Core: Argument
 
 Structural Vector Autoregressive (SVAR) model in matrix form.
 
@@ -25,7 +26,7 @@ where:
 - ``A_+ = [C, A_1, ..., A_p]`` is the coefficient matrix stacking trend and
   autoregressive terms
 
-Assuming ``A0`` is invertible, the reduced-form VAR can be obtained as 
+Assuming ``A0`` is invertible, the reduced-form VAR can be obtained as
 
 ```math
 y_t' = z_t' A_+'(A_0')^{-1} + u_t'(A_0')^{-1}
@@ -39,7 +40,7 @@ which can be represented using a `VAR` object.
 - `p::Int`: Lag order of the (S)VAR
 - `trend_exponents::Vector{<:Number}`: Time trend exponents (e.g., `[0,1]`
   implies constant and linear trend)
-- `var::VAR`: Reduced form representation of SVAR 
+- `var::VAR`: Reduced form representation of SVAR
 """
 mutable struct SVAR <: Model
     # defining the DGP
@@ -53,12 +54,12 @@ mutable struct SVAR <: Model
 end
 
 """
-    SVAR(data::DataFrame, 
+    SVAR(data::DataFrame,
          p::Int;
          trend_exponents::Vector{<:Number} = [0])
 
 Constructs a `SVAR` model object with data, lag length `p`, and
-specified time trend exponents. Coefficients and residuals are uninitialised 
+specified time trend exponents. Coefficients and residuals are uninitialised
 but can be estimed using `fit!` and an appropriate `AbstractIdentificationMethod`.
 
 # Arguments
@@ -107,7 +108,7 @@ is_structural(model::SVAR) = true
 """
     make_companion_matrix(model::SVAR) --> Matrix{<:Number}
 
-Returns the companion matrix for the `VAR` representation of the `SVAR`. 
+Returns the companion matrix for the `VAR` representation of the `SVAR`.
 """
 make_companion_matrix(model::SVAR) = require_fitted(model) && make_companion_matrix(model.var)
 spectral_radius(model::SVAR) = require_fitted(model) && spectral_radius(model.var)
@@ -138,12 +139,12 @@ end
 #-------------------------------------------------------------------------------
 
 """
-    _identify(model::SVAR, 
+    _identify(model::SVAR,
               method::AbstractIdentificationMethod
              ) --> (Matrix{<:Number}, Matrix{<:Number})
 
-    _identify(B::AbstractMatrix{<:Number}, 
-              Sigma_u::AbstractMatrix{<:Number}, 
+    _identify(B::AbstractMatrix{<:Number},
+              Sigma_u::AbstractMatrix{<:Number},
               method::AbstractIdentificationMethod
              ) --> (Matrix{<:Number}, Matrix{<:Number})
 
@@ -156,20 +157,20 @@ For more details, see the `SVAR` documentation.
 
 ## Arguments
 - `model::VAR`: An estimated VAR model
-- `method::AbstractIdentificationMethod`: An identification method to identify 
-  the SVAR from the VAR. 
-- `B::AbstractMatrix{<:Number}`: Coefficient matrix [C B_1 ... B_p] of the VAR. 
-  See the `VAR` documention for more information. 
+- `method::AbstractIdentificationMethod`: An identification method to identify
+  the SVAR from the VAR.
+- `B::AbstractMatrix{<:Number}`: Coefficient matrix [C B_1 ... B_p] of the VAR.
+  See the `VAR` documention for more information.
 - `Sigma_u::AbstractMatrix{<:Number}`: Covariance matrix of VAR residuals. See
-  the `VAR` documentation for more information. 
+  the `VAR` documentation for more information.
 """
 function _identify(::VAR, ::I) where {I<:AbstractIdentificationMethod}
     error("_identify is not implemented for SVAR and method $I.")
 end
 
 function _identify(
-    B::AbstractMatrix{<:Number}, 
-    Sigma_u::AbstractMatrix{<:Number}, 
+    B::AbstractMatrix{<:Number},
+    Sigma_u::AbstractMatrix{<:Number},
     ::Recursive
 )
 
@@ -186,8 +187,8 @@ function _identify(model::VAR, ::Recursive)
 end
 
 function _identify(
-    ::AbstractMatrix{<:Number}, 
-    ::AbstractMatrix{<:Number}, 
+    ::AbstractMatrix{<:Number},
+    ::AbstractMatrix{<:Number},
     ::InternalInstrument
 )
     error("Internal instruments can only be used to identify IRFs but not the full SVAR.")
@@ -201,7 +202,7 @@ function identify!(model::SVAR, method::AbstractIdentificationMethod)
     A0, A_plus = _identify(model.var, method)
     model.A0 = A0
     model.A_plus = A_plus
-    return model 
+    return model
 end
 function identify(model::VAR, method::AbstractIdentificationMethod)
     A0, A_plus = _identify(model, method)
@@ -211,11 +212,11 @@ end
 """
     fit!(model::SVAR, identification_method::AbstractIdentificationMethod) --> SVAR
 
-Estimate an SVAR using `identification_method`. 
+Estimate an SVAR using `identification_method`.
 
 ## Argument
 - `model::SVAR`: A SVAR model to be estimated
-- `identification_method::AbstractIdentificationMethod`: Identification method 
+- `identification_method::AbstractIdentificationMethod`: Identification method
   used to identify SVAR from reduced-form VAR
 """
 function fit!(model::SVAR, identification_method::AbstractIdentificationMethod)
@@ -224,17 +225,17 @@ function fit!(model::SVAR, identification_method::AbstractIdentificationMethod)
 end
 
 """
-    fit_and_select!(model::SVAR, 
-                    identification_method::AbstractIdentificationMethod, 
+    fit_and_select!(model::SVAR,
+                    identification_method::AbstractIdentificationMethod,
                     ic_function::Function=aic) --> (SVAR, DataFrame)
 
-Select and estimate a `SVAR` model by first selecting an estimating a `VAR` 
-model and then identifying the `SVAR` from the `VAR` using `identification_method`. 
+Select and estimate a `SVAR` model by first selecting an estimating a `VAR`
+model and then identifying the `SVAR` from the `VAR` using `identification_method`.
 """
 function fit_and_select!(
-    model::SVAR, 
+    model::SVAR,
     identification_method::AbstractIdentificationMethod,
-    ic_function::Function=aic 
+    ic_function::Function=aic
 )
 
     var_best, ic_table = fit_and_select!(model.var, ic_function)
@@ -267,22 +268,22 @@ The SVAR model is given by:
 ```
 
 # Method 1: `simulate(::Type{SVAR}, shocks, A0, A_plus)`
-Simulates an SVAR process given structural shocks. 
+Simulates an SVAR process given structural shocks.
 
 # Method 2: `simulate(::Type{SVAR}, T, A0, A_plus)`
-Generates random structural shocks from a multivariate Guassian with identify 
+Generates random structural shocks from a multivariate Guassian with identify
 covariance and simulates the SVAR process using these shocks.
 
 # Arguments
 - `A0::Matrix{<:Number}`: Contemporaneous impact matrix (invertible)
-- `A_plus::Matrix{<:Number}`: Coefficient matrix `[C A_1 ... A_p]` 
-   (size `k × (k*p + m)`) where `m` is the number of exogenous components. 
+- `A_plus::Matrix{<:Number}`: Coefficient matrix `[C A_1 ... A_p]`
+   (size `k × (k*p + m)`) where `m` is the number of exogenous components.
 - `shocks::Matrix{<:Number}`: Structural shocks of shape `k × T`
 - `T::Int`: Number of time periods to simulate
 - `trend_exponents::Vector{<:Number}`: Exponents for deterministic trends
   (e.g., `[0,1]` for constant and linear trend)
 - `initial::Union{Nothing, Vector{<:Number}}`: Optional initial conditions
-  for lagged variables (length `k * p`). If `nothing` lags will be initialised 
+  for lagged variables (length `k * p`). If `nothing` lags will be initialised
   at zero.
 
 # Returns
@@ -291,11 +292,11 @@ covariance and simulates the SVAR process using these shocks.
   estimated using `fit!`.
 """
 function simulate(                                            # k variables, T periods, p lags
-    ::Type{SVAR},                                             # 
+    ::Type{SVAR},                                             #
     shocks::AbstractMatrix{<:Number},                         # k × T
-    A0::AbstractMatrix{<:Number},                             # k × k (invertible) 
+    A0::AbstractMatrix{<:Number},                             # k × k (invertible)
     A_plus::AbstractMatrix{<:Number};                         # k × kp + m
-    trend_exponents::AbstractVector{<:Number}=[0],            # m × 1 
+    trend_exponents::AbstractVector{<:Number}=[0],            # m × 1
     initial::Union{Nothing,AbstractVector{<:Number}}=nothing  # kp × 1
 )
 
@@ -356,7 +357,7 @@ The resulting IRFs have the shape `(k, k, H + 1)`, where:
 
 # Arguments
 - `A0::Matrix{<:Number}`: Contemporaneous impact matrix (must be invertible)
-- `A_plus::Matrix{<:Number}`: Stacked lag coefficient matrix 
+- `A_plus::Matrix{<:Number}`: Stacked lag coefficient matrix
   `[A_1 A_2 ... A_p]`, excluding deterministic terms
 - `p::Int`: Lag order
 - `max_horizon::Int`: Maximum horizon for IRFs
@@ -365,16 +366,16 @@ The resulting IRFs have the shape `(k, k, H + 1)`, where:
 - `Array{<:Number, 3}`: Structural IRF array of size `(k, k, max_horizon + 1)`
 """
 function _svar_irf(
-    A0::AbstractMatrix{<:Number}, 
+    A0::AbstractMatrix{<:Number},
     A_plus::AbstractMatrix{<:Number},   # excludes any exogenous terms
-    p::Int, 
+    p::Int,
     max_horizon::Int
 )
 
     Phi0 = inv(A0)
     B_plus = Phi0 * A_plus
     irfs_var = _var_irf(B_plus, p, max_horizon)
-    irfs = mapslices(x -> x * Phi0, irfs_var; dims = [1, 2])
+    irfs = mapslices(x -> x * Phi0, irfs_var; dims=[1, 2])
     return irfs
 end
 
@@ -390,40 +391,40 @@ end
     _identify_irfs(model::VAR, method::I, max_horizon::Int)
         where {I<:AbstractIdentificationMethod}
 
-Internal method to directly identify IRFs from a `VAR` model using the 
+Internal method to directly identify IRFs from a `VAR` model using the
 identification method `method`.
 
 Must return a 3-dimensional array with dimensions (variables, shocks,
-horizons) where the maximum horizon is given by `max_horizon`. 
+horizons) where the maximum horizon is given by `max_horizon`.
 """
 function _identify_irfs(::VAR, ::I, max_horizon::Int) where {I<:AbstractIdentificationMethod}
     error("_identify_irfs is not implemented for model VAR and method $I.")
 end
 
 """
-    _identify_irfs(B::AbstractMatrix{<:Number}, 
-                   Sigma_u::AbstractMatrix{<:Number}, 
-                   p::Int, 
-                   method::AbstractIdentificationMethod, 
+    _identify_irfs(B::AbstractMatrix{<:Number},
+                   Sigma_u::AbstractMatrix{<:Number},
+                   p::Int,
+                   method::AbstractIdentificationMethod,
                    max_horizon::Int) --> AbstractArray{<:Number, 3}
 
 Internal method to directly identify IRFs from `VAR` matrices `B` and `Sigma_u`
-using identification method `method`. 
+using identification method `method`.
 
 ## Arguments
 - `B::AbstractMatrix{<:Number}`: Stacked matrix of lag matrices [B_1, ..., B_p]
-  excluding coefficients on deterministic components. 
-- `Sigma_u::AbstractMatrix{<:Number}`: Covariance matrix of `VAR` residuals. 
-- `p::Int`: Lag-length of `VAR`. 
-- `method::AbstractIdentificationMethod`: Identification method used to identify 
-  `SVAR` IRFs from `VAR`. 
-- `max_horizon::Int`: Maximum horizon for impulse responses. 
+  excluding coefficients on deterministic components.
+- `Sigma_u::AbstractMatrix{<:Number}`: Covariance matrix of `VAR` residuals.
+- `p::Int`: Lag-length of `VAR`.
+- `method::AbstractIdentificationMethod`: Identification method used to identify
+  `SVAR` IRFs from `VAR`.
+- `max_horizon::Int`: Maximum horizon for impulse responses.
 """
 function _identify_irfs(
     B::AbstractMatrix{<:Number},        # excludes deterministic components
-    Sigma_u::AbstractMatrix{<:Number}, 
+    Sigma_u::AbstractMatrix{<:Number},
     p::Int,
-    ::Recursive, 
+    ::Recursive,
     max_horizon::Int
 )
 
@@ -440,9 +441,9 @@ end
 
 function _identify_irfs(
     B::AbstractMatrix{<:Number},         # excludes deterministic components
-    Sigma_u::AbstractMatrix{<:Number}, 
-    p::Int, 
-    method::InternalInstrument, 
+    Sigma_u::AbstractMatrix{<:Number},
+    p::Int,
+    method::InternalInstrument,
     max_horizon::Int
 )
 
@@ -451,12 +452,12 @@ function _identify_irfs(
     idx_instrument = method.instrument
     idx_normalising = method.normalising_variable
 
-    # internal instrument IRFs are cumputed as relative IRFs of the 
-    # Cholesky shock of the instrument variable on the outcome variable 
-    # over the Cholesky shock of the instrument variable on the normalising 
+    # internal instrument IRFs are cumputed as relative IRFs of the
+    # Cholesky shock of the instrument variable on the outcome variable
+    # over the Cholesky shock of the instrument variable on the normalising
     # variable and the pre-defined horizon
     cholesky_irfs = _identify_irfs(B, Sigma_u, p, Recursive(), max_horizon)
-    normalising_factor = cholesky_irfs[idx_normalising, idx_instrument, method.normalising_horizon + 1]
+    normalising_factor = cholesky_irfs[idx_normalising, idx_instrument, method.normalising_horizon+1]
     cholesky_irfs ./= normalising_factor
 
     K = size(cholesky_irfs, 1)
@@ -478,10 +479,35 @@ function _identify_irfs(model::VAR, method::InternalInstrument, max_horizon::Int
     return _identify_irfs(B, Sigma_u, model.p, method_tmp, max_horizon)
 end
 
+function _identify_irfs(model::VAR, method::ExternalInstrument, max_horizon::Int)
+    data = get_input_data(model)
+    method.normalising_horizon == 0 ||
+        throw(ArgumentError("SVAR External Instrument identification currently only supports a normalising horizon of zero."))
+    size(method.instruments, 1) == size(data, 1) ||
+        throw(ArgumentError("Instrument has fewer rows than VAR input data. Fill missing rows with `mising`."))
+
+    idx_normalising = _find_variable_idx(method.treatment, data)
+
+    Y = get_dependent(model)
+    X = get_independent(model)
+    X = hcat(Y[:, idx_normalising], X)
+    # 2SLS requires Z to contain all exogenous variables. In this case, these
+    # are all instruments provided by the user + all lagged and deterministic
+    # terms in X (which are starting at the second column).
+    Z = hcat(X[:, 2:end], method.instruments[(model.p+1):end, :])
+
+    X, Y, Z = _drop_missing_type.(_find_data_overlap(X, Y, Z))
+    Phi0 = fill(NaN, size(Y, 2), size(Y, 2))
+    B = _2sls(X, Y, Z)
+    Phi0[:, idx_normalising] .= B[1, :]
+
+    rf_irfs = _var_irf(coeffs(model, true), model.p, max_horizon)
+    irfs = mapslices(x -> x * Phi0, rf_irfs; dims=[1, 2])
+    return irfs
+end
+
 function IRF(model::VAR, method::AbstractIdentificationMethod, max_horizon::Int)
     irfs = _identify_irfs(model, method, max_horizon)
     varnames = Symbol.(names(get_input_data(model)))
     return IRF(irfs, varnames, model, method)
 end
-
-

@@ -345,3 +345,14 @@ function _find_data_overlap(mats::AbstractMatrix...)
 
     return (mat[idx_first:idx_last, :] for mat in mats)
 end
+
+function _drop_missing_type(mat::AbstractMatrix)
+    any(ismissing.(mat)) && return mat
+    T = typeof(first(mat))
+    return convert(Matrix{T}, mat)
+end
+function _drop_missing_type(vec::AbstractVector)
+    any(ismissing.(vec)) && return vec
+    T = typeof(first(vec))
+    return convert(Vector{T}, vec)
+end

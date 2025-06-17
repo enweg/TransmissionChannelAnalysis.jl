@@ -36,7 +36,7 @@ dimension of the returned array `Y`, such that its shape is:
 # Details
 - All variables in columns before the `treatment` variable are used as
   contemporaneous controls.
-- Regressors in `X` include (optionally) a contant, contemporaneous controls, 
+- Regressors in `X` include (optionally) a contant, contemporaneous controls,
   treatment variable, and lagged values of all variables.
 - Dependent variables in `Y` include future values (leads) for all variables
   at each horizon in `horizons`.
@@ -91,14 +91,14 @@ where ``w_t = (r_t', x_t, q_t')`` and:
 - ``x_t`` is the treatment variable
 - ``r_t`` contains contemporaneous controls (all variables before `x_t`)
 - ``p`` is the number of lags included
-- ``\\theta_{i,h}`` is the relative IRF of `x_t` on the `i`-th variable at 
+- ``\\theta_{i,h}`` is the relative IRF of `x_t` on the `i`-th variable at
   horizon ``h``.
 
 The treatment variable may be endogenous. Structural interpretation of IRFs
 can be achieved using valid instruments—see `ExternalInstrument` for one such
-method. If the treatment satisfies a conditional ignorability assumption 
-(a recursive assumption in macro), then the coefficient has a structural 
-interpretation even without the use of instruments. For this to hold, 
+method. If the treatment satisfies a conditional ignorability assumption
+(a recursive assumption in macro), then the coefficient has a structural
+interpretation even without the use of instruments. For this to hold,
 ``x_t - E(x_t|r_t, w_{t-1}, ..., w_{t-p})`` must be equal to the structural shock.
 
 # Fields
@@ -176,9 +176,9 @@ end
 """
     coeffs(model::LP, exclude_deterministic::Bool=false)
 
-Returns the coefficient estimates of the local projections. The returned 
-object is three dimensional with the coefficients for each horizon stacked 
-along the third dimension. If `exclude_deterministic` is `true`, then 
+Returns the coefficient estimates of the local projections. The returned
+object is three dimensional with the coefficients for each horizon stacked
+along the third dimension. If `exclude_deterministic` is `true`, then
 all coefficients for deterministic variables, i.e. the coefficient on the
 constant, will be removed.
 
@@ -195,18 +195,18 @@ end
 """
     fitted(model::LP)
 
-Returns the fitted values of the local projection in a three dimensional array. 
-The fitted values for each horizon are stacked along the third dimension. 
-The second dimension corresponds to each variable. 
+Returns the fitted values of the local projection in a three dimensional array.
+The fitted values for each horizon are stacked along the third dimension.
+The second dimension corresponds to each variable.
 """
 fitted(model::LP) = require_fitted(model) && model.Yhat
 
 """
     residuals(model::LP)
 
-Returns the residuals of the local projection in a three dimensional array, where 
-the third dimension corresponds to the various horizons, and the second 
-dimension corresponds to the various variables. 
+Returns the residuals of the local projection in a three dimensional array, where
+the third dimension corresponds to the various horizons, and the second
+dimension corresponds to the various variables.
 """
 residuals(model::LP) = require_fitted(model) && model.U
 
@@ -215,8 +215,8 @@ nobs(model::LP) = size(model.data, 1) - model.p .- model.horizons
 """
     get_dependent(model::LP)
 
-The dependent variables are returned as a three dimensional array, with the 
-third dimension corresponding the the various forecast horizons. 
+The dependent variables are returned as a three dimensional array, with the
+third dimension corresponding the the various forecast horizons.
 """
 get_dependent(model::LP) = model.Y
 
@@ -227,8 +227,8 @@ is_fitted(model::LP) = size(model.coeffs, 1) > 0
 """
     is_structural(model::LP)
 
-Always returns `true`. We assume here that local projections are only used 
-to estimate structural IRFs. This is not always true. `is_structural` should 
+Always returns `true`. We assume here that local projections are only used
+to estimate structural IRFs. This is not always true. `is_structural` should
 thus be used with care in the case of local projections.
 """
 is_structural(model::LP) = true  # we just assume that this is always the case
@@ -281,35 +281,6 @@ function fit!(model::LP, ::Recursive)
     return model
 end
 
-"""
-    _2sls(X::AbstractMatrix{<:Number},
-         Y::AbstractMatrix{<:Number},
-         Z::AbstractMatrix{<:Number})
-
-Internal function for two-stage least squares (2SLS) estimation.
-
-Estimates regression coefficients when some regressors in `X` may be
-endogenous, using instruments in `Z`. Commonly used in external
-instrument identification.
-
-# Arguments
-- `X::Matrix{<:Number}`: regressors (may include endogenous variables)
-- `Y::Matrix{<:Number}`: outcomes
-- `Z::Matrix{<:Number}`: instruments and exogenous regressors
-
-# Returns
-- `Matrix{<:Number}`: 2SLS coefficient estimates
-"""
-function _2sls(
-    X::AbstractMatrix{<:Number},
-    Y::AbstractMatrix{<:Number},
-    Z::AbstractMatrix{<:Number}
-)
-
-    X_hat = Z * ((Z' * Z) \ (Z' * X))
-    return (X_hat' * X_hat) \ (X_hat' * Y)
-end
-
 function fit!(model::LP, method::ExternalInstrument)
     idx_treatment = _find_variable_idx(model.treatment, model.data)
     idx_treatment_instrument = _find_variable_idx(method.treatment, model.data)
@@ -319,7 +290,7 @@ function fit!(model::LP, method::ExternalInstrument)
     Z = method.instruments[(model.p+1):end, :]
     m = model.include_constant
     if method.normalising_horizon > 0
-        # lead the treatment column in X to adjust for which horizon 
+        # lead the treatment column in X to adjust for which horizon
         # the unit effect normalisation applies to
         nlead = method.normalising_horizon
         model.X[:, idx_treatment+m] .= make_lead_matrix(model.X[:, idx_treatment+m], nlead)
@@ -357,7 +328,7 @@ function fit!(model::LP, method::ExternalInstrument)
     return model
 end
 
-# there is no good way to select the lag-length yet besides running an 
+# there is no good way to select the lag-length yet besides running an
 # auxiliary VAR
 function fit_and_select!(model::LP, ::Recursive, ic_function::Function=aic)
     trend_exponents = model.include_constant ? [0] : Real[]
@@ -407,4 +378,3 @@ function IRF(model::LP, method::AbstractIdentificationMethod, max_horizon::Int)
     varnames = Symbol.(names(get_input_data(model)))
     return IRF(irfs, varnames, model, method)
 end
-

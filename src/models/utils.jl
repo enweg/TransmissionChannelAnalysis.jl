@@ -10,9 +10,9 @@ Constructs the companion matrix of a VAR(p) model.
 # Arguments
 - `Bs`: a vector of lag matrices `[B_1, B_2, ..., B_p]`, each `k × k`
 - `B_plus`: a single matrix formed by horizontally concatenating ``[C B_1 B_2 ... B_p]``
-   where ``C`` is the matrix of coefficients for deterministic (exogeneous) 
+   where ``C`` is the matrix of coefficients for deterministic (exogeneous)
    components.
-- `p::Int`: lag-length of the VAR. 
+- `p::Int`: lag-length of the VAR.
 - `n_exo::Int`: number of exogenous components, i.e. number of columns in ``C``.
 
 # Returns
@@ -49,8 +49,8 @@ end
 Computes the spectral radius of a matrix `X`.
 
 # Description
-The spectral radius of a matrix is defined as the largest absolute eigenvalue 
-of the matrix. 
+The spectral radius of a matrix is defined as the largest absolute eigenvalue
+of the matrix.
 
 Mathematically, for a given square matrix `X`, the spectral radius is computed as:
 
@@ -60,7 +60,7 @@ Mathematically, for a given square matrix `X`, the spectral radius is computed a
 where `\\lambda_i` are the eigenvalues of `X`.
 
 # Arguments
-- `X::AbstractMatrix`: A square matrix. 
+- `X::AbstractMatrix`: A square matrix.
 
 # Returns
 - The spectral radius of `X`.
@@ -97,26 +97,26 @@ end
     make_lag_matrix!(X::AbstractMatrix{<:Number}, Y::AbstractMatrix{<:Number}) -> AbstractMatrix{<:Number}
     make_lag_matrix(Y::AbstractMatrix{<:Number}, nlag::Int) -> AbstractMatrix{<:Number}
 
-Constructs a lag matrix from `Y`, storing the results in `X` (mutating) or 
+Constructs a lag matrix from `Y`, storing the results in `X` (mutating) or
 returning a new matrix.
 
-If `Y` is a matrix of time series data with `T` observations and `k` variables, 
-then the lag matrix `X` has along its first `k` columns data `Y` lagged by 
-one period, along columns `(k+1):2k` data `Y` lagged by two periods, etc. 
+If `Y` is a matrix of time series data with `T` observations and `k` variables,
+then the lag matrix `X` has along its first `k` columns data `Y` lagged by
+one period, along columns `(k+1):2k` data `Y` lagged by two periods, etc.
 
-Missing values (due to lags) are filled with `NaN` to maintain dimensional 
+Missing values (due to lags) are filled with `NaN` to maintain dimensional
 and type consistency.
 
 # Arguments
-- `X::AbstractMatrix{<:Number}`: A preallocated matrix of dimensions 
+- `X::AbstractMatrix{<:Number}`: A preallocated matrix of dimensions
   `T × (k \\times nlag)` to store lagged values.
-- `Y::AbstractMatrix{<:Number}`: A matrix of time series data with dimensions 
+- `Y::AbstractMatrix{<:Number}`: A matrix of time series data with dimensions
   `T × k`.
 - `nlag::Int`: The number of lags to include.
 
 # Returns
 - If using `make_lag_matrix!(X, Y)`, the function modifies `X` in place and returns it.
-- If using `make_lag_matrix(Y, nlag)`, a new matrix containing the lagged values 
+- If using `make_lag_matrix(Y, nlag)`, a new matrix containing the lagged values
   is created and returned.
 
 # Examples
@@ -148,7 +148,7 @@ make_lag_matrix, make_lag_matrix!
 
 function make_lead_matrix!(X::AbstractMatrix{<:Number}, Y::AbstractVecOrMat{<:Number})
     view(X, :, :) .= eltype(X)(NaN)
-    k = size(Y,2)
+    k = size(Y, 2)
     nlead = floor(Int, size(X, 2) / k)
     for l = 1:nlead
         @views X[1:(end-l), ((l-1)*k+1):(l*k)] .= Y[(l+1):end, :]
@@ -214,7 +214,7 @@ make_lead_matrix, make_lead_matrix!
     _make_trend!(v::AbstractVector, t::Int, trend_exponents::AbstractVector{<:Real}) --> AbstractVector
 
 Given a set of `trend_exponents`, fill the vector `v` with `[t^e for e in trend_exponents]`
-without any allocations. 
+without any allocations.
 """
 function _make_trend!(v::AbstractVector, t::Int, trend_exponents::AbstractVector)
     for i in 1:lastindex(trend_exponents)
@@ -228,10 +228,10 @@ end
 
 Rotate in the new values `x_new` at the beginning of the old `x`. This works
 by shifting all values in `x` to higher indices such that the subvector `x_new`
-fits into the beginning of `x`. 
+fits into the beginning of `x`.
 
 Notes:
-    - This is used for simulation and other places where the lag vector needs to 
+    - This is used for simulation and other places where the lag vector needs to
     be updated repeatedly
 """
 function _rotate_in!(x::AbstractVector{T}, x_new::AbstractVector{T}) where {T}
@@ -258,7 +258,7 @@ the column index and is returned directly.
 # Returns
 - `Int`: The column index of the specified variable
 """
-function _find_variable_idx(variable::Union{Symbol, Int}, data::DataFrame)
+function _find_variable_idx(variable::Union{Symbol,Int}, data::DataFrame)
     isa(variable, Int) && return variable
     return findfirst(==(variable), Symbol.(names(data)))
 end
@@ -285,6 +285,35 @@ this function returns a vector containing each `B_i` as a separate matrix.
 """
 function _separate_lag_matrices(B::AbstractMatrix, p::Int)
     k = div(size(B, 2), p)
-    Bs = [B[:, ((i-1)*k+1):(i*k)] for i=1:p]
+    Bs = [B[:, ((i-1)*k+1):(i*k)] for i = 1:p]
     return Bs
+end
+
+"""
+    _2sls(X::AbstractMatrix{<:Number},
+         Y::AbstractMatrix{<:Number},
+         Z::AbstractMatrix{<:Number})
+
+Internal function for two-stage least squares (2SLS) estimation.
+
+Estimates regression coefficients when some regressors in `X` may be
+endogenous, using instruments in `Z`. Commonly used in external
+instrument identification.
+
+# Arguments
+- `X::Matrix{<:Number}`: regressors (may include endogenous variables)
+- `Y::Matrix{<:Number}`: outcomes
+- `Z::Matrix{<:Number}`: instruments and exogenous regressors
+
+# Returns
+- `Matrix{<:Number}`: 2SLS coefficient estimates
+"""
+function _2sls(
+    X::AbstractMatrix{<:Number},
+    Y::AbstractMatrix{<:Number},
+    Z::AbstractMatrix{<:Number}
+)
+
+    X_hat = Z * ((Z' * Z) \ (Z' * X))
+    return (X_hat' * X_hat) \ (X_hat' * Y)
 end

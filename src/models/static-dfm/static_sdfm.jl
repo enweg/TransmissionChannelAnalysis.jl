@@ -188,5 +188,3 @@ function IRF(model::DFM, method::AbstractIdentificationMethod, max_horizon::Int)
     factornames = Symbol.("F" .* string.(1:model.r))
     return IRF(variable_irfs, varnames, model), IRF(factor_irfs, factornames, model)
 end
-
-# TODO: implement external instrument identification for SVAR

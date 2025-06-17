@@ -110,7 +110,10 @@ function simulate!(
     data = DataFrame(merrors', "Y" .* string.(1:size(merrors, 1)))
     p = factor_var.p
     r = size(F, 2)
-    return DFM(data, p, r; trend_exponents=trend_exponents)
+
+    model = DFM(data, p, r; trend_exponents=trend_exponents)
+    model.F = F
+    return model
 end
 
 function simulate(

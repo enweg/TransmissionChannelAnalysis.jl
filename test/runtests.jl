@@ -55,4 +55,5 @@ end
 
 @testset "DFM" begin
     include("./models/static_dfm.jl")
+    include("./models/static_sdfm.jl")
 end

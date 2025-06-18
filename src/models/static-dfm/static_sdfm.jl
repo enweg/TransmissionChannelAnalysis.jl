@@ -76,7 +76,7 @@ shocks(model::SDFM) = require_fitted(model) && shocks(model.factor_svar)
 nobs(model::SDFM) = size(model.Y, 1)
 get_dependent(model::SDFM) = model.Y
 get_input_data(model::SDFM) = model.input_data
-get_factor_svar(model::SDFM) = model.factor_svar
+get_factor_svar(model::SDFM) = require_fitted(model) && model.factor_svar
 
 #-------------------------------------------------------------------------------
 # SIMULATION
@@ -118,7 +118,7 @@ function simulate(
     A_plus::AbstractMatrix{<:Number},
     Lambda::AbstractMatrix{<:Number},
     Sigma_eta::AbstractMatrix{<:Number}=I(size(Lambda, 1));
-    trend_exponents::AbstractVector{<:Int}=[0],
+    trend_exponents::AbstractVector{<:Number}=[0],
     initial_F::Union{Nothing,AbstractVector{<:Int}}=nothing
 )
 

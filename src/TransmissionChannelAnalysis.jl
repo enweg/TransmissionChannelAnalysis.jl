@@ -55,7 +55,7 @@ export PCA, BaiNgPC1, BaiNgPC2, BaiNgPC3, BaiNgIC1, BaiNgIC2, BaiNgIC3,
 include("models/static-dfm/static_dfm.jl")
 export DFM, get_factor_var, factors, loadings, is_scaled, is_centered
 include("models/static-dfm/static_sdfm.jl")
-export SDFM
+export SDFM, get_factor_svar
 
 
 include("./models/transmission.jl")

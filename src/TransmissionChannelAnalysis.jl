@@ -44,7 +44,7 @@ include("./models/lp/lp.jl")
 export LP
 include("models/static-dfm/pca.jl")
 export PCA, BaiNgPC1, BaiNgPC2, BaiNgPC3, BaiNgIC1, BaiNgIC2, BaiNgIC3,
-    select_factors!, factors, loadings
+    select_factors!, factors, loadings, apply_named_factors, apply_named_factors!
 include("models/static-dfm/static_dfm.jl")
 export DFM, get_factor_var, factors, loadings, is_scaled, is_centered
 include("models/static-dfm/static_sdfm.jl")

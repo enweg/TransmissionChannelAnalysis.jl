@@ -42,13 +42,6 @@ export SVAR
 export identify, identify!
 include("./models/lp/lp.jl")
 export LP
-# include("./models/dfm/utils.jl")
-# include("./models/dfm/abstract.jl")
-# include("./models/dfm/pca.jl")
-# include("./models/dfm/dynamic/dynamicDFM.jl")
-# include("./models/dfm/static/staticDFM.jl")
-# export PCA, DynamicDFM, StaticDFM, BaiNgPC1, BaiNgPC2, BaiNgPC3, BaiNgIC1,
-#        BaiNgIC2, BaiNgIC3, select_factors!, get_factor_loadings, get_factors
 include("models/static-dfm/pca.jl")
 export PCA, BaiNgPC1, BaiNgPC2, BaiNgPC3, BaiNgIC1, BaiNgIC2, BaiNgIC3,
     select_factors!, factors, loadings

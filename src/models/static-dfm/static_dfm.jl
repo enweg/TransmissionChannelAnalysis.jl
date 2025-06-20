@@ -142,7 +142,11 @@ end
 #-------------------------------------------------------------------------------
 
 """
-    fit!(model::DFM; atol::Real=sqrt(eps()))
+    fit!(
+      model::DFM;
+      atol::Real=sqrt(eps()),
+      named_factors::Union{Nothing,AbstractVector{<:Int}}=nothing
+    )
 
 Fit a Dynamic Factor Model (DFM) with static factors.
 

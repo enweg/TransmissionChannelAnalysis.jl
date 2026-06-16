@@ -32,23 +32,24 @@ involves only ANDs.
 - Only for internal use. 
 
 """
-function calculate_Q_and_only(from::Int, 
-    irfs::AbstractMatrix{T}, 
-    irfs_ortho::AbstractMatrix{T}, 
-    vars::AbstractVector{Int}, 
-    multiplier::Number
+function calculate_Q_and_only(
+    from::Int,
+    irfs::AbstractMatrix{T},
+    irfs_ortho::AbstractMatrix{T},
+    vars::AbstractVector{Int},
+    multiplier::Number,
 ) where {T}
 
     if isempty(vars)
         # indicating TRUE
         return irfs[:, from] .* multiplier
     end
-    
+
     vars = sort(vars)
-    
+
     effect = zeros(T, size(irfs, 1))
     effect .= multiplier * irfs[vars[1], from]
-    for i in 1:(lastindex(vars)-1)
+    for i = 1:(lastindex(vars)-1)
         effect .*= irfs_ortho[vars[i+1], vars[i]] ./ irfs_ortho[vars[i], vars[i]]
     end
     effect .*= irfs_ortho[:, vars[end]] ./ irfs_ortho[vars[end], vars[end]]
@@ -100,11 +101,12 @@ irfs_ortho = to_transmission_irfs(irfs_ortho)
 effect = transmission(1, irfs, irfs_ortho, cond; method = :irfs)
 ```
 """
-function transmission(from::Int, 
-    irfs::AbstractMatrix{T}, 
-    irfs_ortho::AbstractMatrix{T}, 
-    q::Q, 
-    ::Type{Val{:irfs}}
+function transmission(
+    from::Int,
+    irfs::AbstractMatrix{T},
+    irfs_ortho::AbstractMatrix{T},
+    q::Q,
+    ::Type{Val{:irfs}},
 ) where {T}
 
     @info "Using method :irfs to calculate transmission effect."
@@ -119,18 +121,20 @@ function transmission(from::Int,
     end
     return sum(effects)
 end
-function transmission(from::Int, 
-    irfs::AbstractMatrix{T}, 
+function transmission(
+    from::Int,
+    irfs::AbstractMatrix{T},
     irfs_ortho::AbstractMatrix{T},
-    vars_and::AbstractVector{Int}, 
-    vars_not::AbstractVector{Int}, 
-    multiplier::Number, 
-    ::Type{Val{:irfs}}
+    vars_and::AbstractVector{Int},
+    vars_not::AbstractVector{Int},
+    multiplier::Number,
+    ::Type{Val{:irfs}},
 ) where {T}
 
     effect = calculate_Q_and_only(from, irfs, irfs_ortho, vars_and, one(T))
     combs = combinations(vars_not)
     for c in combs
+        isempty(c) && continue  # Fixes Combinatorics decision to include empty set
         v = unique(vcat(vars_and, c))
         effect += (-1)^length(c) * calculate_Q_and_only(from, irfs, irfs_ortho, v, one(T))
     end

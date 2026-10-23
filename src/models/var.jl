@@ -147,6 +147,12 @@ function coeffs(model::VAR, exclude_deterministic::Bool=false)
     m = length(model.trend_exponents)
     return model.B[:, (m+1):end]
 end
+"""
+    cov(model::VAR) --> Matrix{<:Number}
+
+Returns the covariance matrix `Sigma_u` of the VAR residuals. The model must
+first be estimated using `fit!`.
+"""
 cov(model::VAR) = require_fitted(model) && model.Sigma_u
 fitted(model::VAR) = require_fitted(model) && model.Yhat
 residuals(model::VAR) = require_fitted(model) && model.U

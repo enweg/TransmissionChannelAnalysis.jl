@@ -197,12 +197,39 @@ function _identify(model::VAR, ::InternalInstrument)
     error("Internal instruments can only be used to identify IRFs but not the full SVAR.")
 end
 
+"""
+    identify!(model::SVAR, method::AbstractIdentificationMethod) --> SVAR
+
+Identify the structural matrices `A0` and `A_plus` of `model` from its
+already estimated reduced-form VAR using the identification `method`. The
+matrices are stored in `model`, which is also returned.
+
+## Arguments
+- `model::SVAR`: A SVAR whose reduced-form VAR has been estimated
+- `method::AbstractIdentificationMethod`: Identification method used to
+  identify the SVAR from the reduced-form VAR
+
+See also [`identify`](@ref), [`fit!`](@ref)
+"""
 function identify!(model::SVAR, method::AbstractIdentificationMethod)
     A0, A_plus = _identify(model.var, method)
     model.A0 = A0
     model.A_plus = A_plus
     return model 
 end
+"""
+    identify(model::VAR, method::AbstractIdentificationMethod) --> SVAR
+
+Identify a `SVAR` from the estimated reduced-form `model` using the
+identification `method`. Returns a new `SVAR` that wraps `model`.
+
+## Arguments
+- `model::VAR`: An estimated VAR model
+- `method::AbstractIdentificationMethod`: Identification method used to
+  identify the SVAR from the VAR
+
+See also [`identify!`](@ref), [`SVAR`](@ref)
+"""
 function identify(model::VAR, method::AbstractIdentificationMethod)
     A0, A_plus = _identify(model, method)
     return SVAR(A_plus, A0, model.p, model.trend_exponents, model)

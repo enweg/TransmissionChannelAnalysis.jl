@@ -1,3 +1,12 @@
+"""
+    Model
+
+Abstract supertype for all models, for example `VAR`, `SVAR` and `LP`.
+
+New models must subtype `Model` and should implement the generic model functions
+such as `fit!`, `is_fitted`, `coeffs` and `get_input_data`. Models that can
+identify structural IRFs should also implement `IRF`.
+"""
 abstract type Model end
 
 """

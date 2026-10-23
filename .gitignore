@@ -3,3 +3,5 @@
 *.jl.mem
 /docs/Manifest.toml
 /docs/build/
+/docs/api/Manifest.toml
+/docs/api/api-julia.json

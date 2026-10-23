@@ -4,5 +4,5 @@ CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 TransmissionChannelAnalysis = "d500094b-e8d7-4ee4-9514-4e3996dd73c3"
 
 [sources]
-ApiDocs = {path = "../../../ApiDocs.jl"}
+ApiDocs = {rev = "main", url = "../../../ApiDocs.jl"}
 TransmissionChannelAnalysis = {path = "../.."}

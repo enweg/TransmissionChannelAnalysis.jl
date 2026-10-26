@@ -71,9 +71,11 @@ Given a transmission condition `q`, calculate the transmission effect using the
 ## Returns 
 
 - Returns a `Vector{T}` with entry `i` corresponding to the transmission effect
-  on variable ``x_i``. If ``x_k`` is the variable in the transmission condition
-  with the highest subscript, then all entries in the returned vector with index
-  less thatn `k` are `NaN` since interpretation of those results is nonsensical. 
+  on variable ``x_i``. If ``x_k`` is the variable with the highest subscript
+  that enters the (simplified) transmission condition through an AND, then all
+  entries with index `i ≤ k` are `NaN`, since the outcome variable must be
+  ordered after all variables that paths must go through. Variables that only
+  enter through a NOT never lead to `NaN`. See also `mask_uninterpretable!`.
 
 ## Examples
 
@@ -99,7 +101,17 @@ function transmission(
 
     @info "Using method :BOmega to calculate transmission effect."
     var_and, var_not, multiplier = get_varnums_and_multiplier(q)
-    return transmission(from, B, Omega, var_and, var_not, multiplier, Val{:BOmega})
+    effects = transmission(from, B, Omega, var_and, var_not, multiplier, Val{:BOmega})
+
+    # In the theory we assume that the outcome variable is ordered after all
+    # variables in the transmission condition. A user might not be aware of
+    # this and may interpret the effect on a variable ordered before (or equal
+    # to) a conditioning variable. For NOT this is not a problem: a path to the
+    # outcome cannot go through variables ordered after it, so the effect is
+    # still correct. For AND this is a problem: the path cannot have gone
+    # through the AND variable before reaching the outcome. All effects up to
+    # and including the highest AND variable are thus set to NaN.
+    return mask_uninterpretable!(effects, var_and)
 end
 function transmission(
     from::Int, 
@@ -119,23 +131,9 @@ function transmission(
         apply_not!(B_tilde, Omega_tilde, from, v)
     end
     irfs = (I - B_tilde) \ Omega_tilde[:, from]
-    # var_and and var_not are empty if effect reduced to total effect
-    isempty(var_and) && isempty(var_not) && return irfs
-
-    # In the theory we assume that all var_and and var_not indices are less 
-    # than the index of the outcome variable (otherwise the qustion does not make
-    # sense to begin with). We still assumes this here. However, a user might 
-    # not be aware of this requirement and may thus interpret the outcome of a 
-    # variable that has an index less than the indices in var_and and var_not. 
-    # Having an index less than var_not is not a problem, since the path did 
-    # not go through any variables in var_not. However, having an index less than 
-    # var_and is a problem, since the path cannot have gone through at least 
-    # one variable in var_and. Thus, correct is that all effects less than 
-    # the maximum(var_and) are zero. 
-    if !isempty(var_and) 
-        irfs[1:maximum(var_and)] .= 0
-    end
-
+    # Effects that must not be interpreted are set to NaN for the full
+    # condition in `transmission(..., q::Q, ::Type{Val{:BOmega}})`. See
+    # `mask_uninterpretable!`.
     return irfs
 end 
 function transmission(

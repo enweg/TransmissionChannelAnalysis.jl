@@ -23,9 +23,8 @@ involves only ANDs.
 ## Returns 
 
 - Returns a `Vector{T}` with entry `i` corresponding to the transmission effect
-  on variable ``x_i``. If ``x_k`` is the variable in the transmission condition
-  with the highest subscript, then all entries in the returned vector with index
-  less thatn `k` are `NaN` since interpretation of those results is nonsensical.
+  on variable ``x_i``. No entries are set to `NaN`; masking is done for the full
+  condition in `transmission`. See also `mask_uninterpretable!`.
 
 ## Notes
 
@@ -80,9 +79,12 @@ Given a transmission condition `q`, calculate the transmission effect using the
 ## Returns 
 
 - Returns a `Vector{T}` with entry `i` corresponding to the transmission effect
-  on variable ``x_i``. If ``x_k`` is the variable in the transmission condition
-  with the highest subscript, then all entries in the returned vector with index
-  less thatn `k` are `NaN` since interpretation of those results is nonsensical. 
+  on variable ``x_i``. If ``x_k`` is the variable with the highest subscript
+  that enters the (simplified) transmission condition through an AND, then all
+  entries with index `i ≤ k` are `NaN`, since the outcome variable must be
+  ordered after all variables that paths must go through. Variables that only
+  enter through a NOT never lead to `NaN`. See also
+  `mask_uninterpretable!`.
 
 ## Examples
 
@@ -119,7 +121,13 @@ function transmission(
         m = multiplier[i]
         effects[i] = transmission(from, irfs, irfs_ortho, v_and, v_not, m, Val{:irfs})
     end
-    return sum(effects)
+
+    # Effects up to and including the highest AND variable must not be
+    # interpreted and are set to NaN. This must happen here, for the full
+    # condition, and not for the individual terms: NOT literals are computed
+    # via inclusion-exclusion over AND-only terms, and masking those would
+    # wrongly mask the effects of NOT conditions. See `mask_uninterpretable!`.
+    return mask_uninterpretable!(sum(effects), vars_and)
 end
 function transmission(
     from::Int,

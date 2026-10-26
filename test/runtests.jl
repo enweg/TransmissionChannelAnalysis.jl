@@ -24,6 +24,7 @@ end
     # Write your tests here.
     include("./simplifying.jl")
     include("./transmission-function.jl")
+    include("./masking.jl")
 end
 
 @testset "TransmissionChannelAnalysis.jl REMOVE_CONTRADICTIONS = false" begin
@@ -31,6 +32,7 @@ end
     TransmissionChannelAnalysis.REMOVE_CONTRADICTIONS[] = false
     include("./simplifying.jl")
     include("./transmission-function.jl")
+    include("./masking.jl")
 end
 
 #-------------------------------------------------------------------------------

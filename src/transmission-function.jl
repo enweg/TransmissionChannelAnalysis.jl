@@ -40,6 +40,57 @@ function get_varnums_and_multiplier(q::Q)
 end
 
 """
+    mask_uninterpretable!(effects::AbstractVector, and_nums::Vector{Vector{Int}})
+
+Set all transmission effects that must not be interpreted to `NaN`. These are
+the effects on all variables ``x_i`` with ``i \\leq k``, where ``x_k`` is the
+variable with the highest index that enters any term of the transmission
+condition through an AND (a variable that paths must go through).
+
+The theory in $WEGNER assumes that the outcome variable is ordered after all
+variables that the transmission condition puts restrictions on. A user might
+not be aware of this requirement and may thus interpret the effect on a
+variable that is ordered before (or is equal to) one of the conditioning
+variables.
+
+- For NOT this is not a problem. A path to ``x_i`` cannot go through any
+  variable ordered after ``x_i``, so a NOT on such a variable does not restrict
+  the paths to ``x_i``, and the effect on ``x_i`` itself is correctly zero if
+  ``x_i`` is excluded. NOT variables therefore never trigger masking.
+- For AND this is a problem. A path to ``x_i`` with ``i \\leq k`` cannot go
+  through ``x_k`` before reaching the outcome, so the question is
+  nonsensical. The computed numbers have no meaningful interpretation and can
+  even differ between the `:BOmega` and the `:irfs` method. They are therefore
+  set to `NaN`.
+
+The masking is applied to the effect of the full condition and not to the
+effect of individual terms, since the `:irfs` method rewrites NOT literals as
+AND literals using inclusion-exclusion; masking those internal terms would
+wrongly mask effects of NOT conditions.
+
+## Arguments
+
+- `effects::AbstractVector`: Transmission effects in the ordering of the
+  transmission matrix. Modified in place.
+- `and_nums::Vector{Vector{Int}}`: Variable numbers included via AND in each
+  term. See `get_varnums_and_multiplier`.
+
+## Returns
+
+- `effects` with the uninterpretable entries set to `NaN`.
+
+## Notes
+
+- Only for internal use.
+"""
+function mask_uninterpretable!(effects::AbstractVector, and_nums::Vector{Vector{Int}})
+    vars = reduce(vcat, and_nums; init=Int[])
+    isempty(vars) && return effects
+    effects[1:maximum(vars)] .= NaN
+    return effects
+end
+
+"""
     to_transmission_irfs(irfs::AbstractArray{T, 3})
 
 Transform a standard three dimensional IRF array into a IRF matrix. The 
@@ -90,9 +141,12 @@ either the `:BOmega` method (the default), or the `:irfs` method.
 ## Returns 
 
 - Returns a `Vector{T}` with entry `i` corresponding to the transmission effect
-  on variable ``x_i``. If ``x_k`` is the variable in the transmission condition
-  with the highest subscript, then all entries in the returned vector with index
-  less thatn `k` are `NaN` since interpretation of those results is nonsensical. 
+  on variable ``x_i``. If ``x_k`` is the variable with the highest subscript
+  that enters the (simplified) transmission condition through an AND, then all
+  entries with index `i ≤ k` are `NaN`, since the outcome variable must be
+  ordered after all variables that paths must go through. Variables that only
+  enter through a NOT never lead to `NaN`. See also
+  `mask_uninterpretable!`.
 
 ## Examples
 
